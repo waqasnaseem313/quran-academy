@@ -1,21 +1,19 @@
 // ============================================================
-//  QURAN ACADEMY — api.js (FIXED)
-//  Google Apps Script Web App interface + request queue
-//  Replace APPS_SCRIPT_URL with your deployed Web App URL
+//  QURAN ACADEMY — api.js (Improved with better error handling)
 // ============================================================
-
-// Make sure Auth is defined first (load this after Auth.js)
-// OR define Auth before API if in same file
 
 const API = (() => {
 
-  // ── CONFIG — replace this after deploying Code.gs ────────
+  // ── CONFIG — REPLACE THIS WITH YOUR DEPLOYED URL ────────
   const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx3wdNTyA4RnBVEbtKEfIOCrMFFVFHCl6XijsD4d66MbtB9CBwxldEwxrfHiWcnldsh/exec';
+  
+  // Add a test endpoint to verify connectivity
+  const TEST_MODE = true; // Set to false in production
 
-  // ── Request queue (avoid hitting 30 req/min limit) ────────
+  // ── Request queue ────────────────────────────────────────
   const queue = [];
   let isProcessing = false;
-  const RATE_LIMIT_MS = 300; // min gap between requests
+  const RATE_LIMIT_MS = 300;
 
   function enqueue(action, body = {}, method = 'POST') {
     return new Promise((resolve, reject) => {
@@ -42,25 +40,26 @@ const API = (() => {
   }
 
   async function rawRequest(action, body = {}, method = 'POST') {
-    // Try to get token, but don't fail if Auth not available
+    // Get token safely
     let token = null;
     try {
       if (typeof Auth !== 'undefined' && Auth.getToken) {
         token = Auth.getToken();
       }
     } catch(e) {
-      console.warn('Auth not available yet');
+      console.warn('Auth not available');
     }
 
     let url = APPS_SCRIPT_URL;
     let opts = {};
 
+    // Add cache busting to prevent caching issues
+    const cacheBuster = `_cb=${Date.now()}`;
+
     if (method === 'GET') {
-      // For GET requests, put everything in URL params
       const params = new URLSearchParams();
       params.append('action', action);
       
-      // Add all body parameters to URL
       Object.keys(body).forEach(key => {
         if (body[key] !== undefined && body[key] !== null) {
           params.append(key, typeof body[key] === 'object' ? JSON.stringify(body[key]) : body[key]);
@@ -68,31 +67,45 @@ const API = (() => {
       });
       
       if (token) params.append('token', token);
+      params.append('_', Date.now()); // Cache busting
+      
       url = url + '?' + params.toString();
-      opts = { method: 'GET' };
+      opts = { 
+        method: 'GET',
+        mode: 'cors',
+        cache: 'no-cache'
+      };
     } else {
-      // For POST requests, send JSON in body with action
       const payload = { action, ...body };
       if (token) payload.token = token;
       
       opts = {
         method: 'POST',
+        mode: 'cors',
+        cache: 'no-cache',
         headers: { 
-          'Content-Type': 'application/json'  // FIXED: Changed from text/plain
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
         },
         body: JSON.stringify(payload)
       };
     }
 
     try {
+      console.log(`Sending ${method} request to:`, url);
+      console.log('Request payload:', opts.body || 'GET request');
+      
       const res = await fetch(url, opts);
       
-      // Check if response is OK
+      console.log('Response status:', res.status);
+      console.log('Response headers:', res.headers);
+      
       if (!res.ok) {
         throw new Error(`HTTP ${res.status}: ${res.statusText}`);
       }
       
       const data = await res.json();
+      console.log('Response data:', data);
       
       if (!data.success) {
         throw new Error(data.error || 'Request failed');
@@ -101,13 +114,41 @@ const API = (() => {
       return data;
     } catch (err) {
       console.error(`API Error (${action}):`, err);
+      
+      // Provide more helpful error messages
+      if (err.message === 'Failed to fetch') {
+        throw new Error(`Cannot connect to server. Please check:\n1. Web App URL is correct: ${APPS_SCRIPT_URL}\n2. Web App is deployed and published\n3. You're not behind a firewall\n4. Try opening the URL directly in browser`);
+      }
+      
       throw err;
     }
   }
 
   function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
-  // ── Helper to safely get auth info ──────────────────────
+  // Test connectivity to the backend
+  async function testConnection() {
+    try {
+      console.log('Testing connection to:', APPS_SCRIPT_URL);
+      const response = await fetch(`${APPS_SCRIPT_URL}?action=getAllStudents&_=${Date.now()}`, {
+        method: 'GET',
+        mode: 'cors'
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Connection test successful:', data);
+        return { success: true, message: 'Connected successfully' };
+      } else {
+        return { success: false, message: `HTTP ${response.status}` };
+      }
+    } catch (err) {
+      console.error('Connection test failed:', err);
+      return { success: false, message: err.message };
+    }
+  }
+
+  // Helper functions
   function getAuthUserId() {
     try {
       return typeof Auth !== 'undefined' && Auth.getUserId ? Auth.getUserId() : '';
@@ -121,65 +162,46 @@ const API = (() => {
   }
 
   // ── Public API methods ───────────────────────────────────
-
-  // Auth
   const register = (formData) => enqueue('register', formData);
-  const login    = (email, password, role) => enqueue('login', { email, password, role });
+  const login = (email, password, role) => enqueue('login', { email, password, role });
   const verifyToken = (token) => enqueue('verifyToken', { token });
 
-  // Admin — Students
   const getPendingStudents = () => enqueue('getPendingStudents', {}, 'GET');
-  const getAllStudents      = () => enqueue('getAllStudents', {}, 'GET');
-  const approveStudent     = (studentId, classGroupId) =>
+  const getAllStudents = () => enqueue('getAllStudents', {}, 'GET');
+  const approveStudent = (studentId, classGroupId) =>
     enqueue('approveStudent', { studentId, classGroupId, approvedBy: getAuthUserName() });
-  const rejectStudent      = (studentId) => enqueue('rejectStudent', { studentId });
-  const suspendStudent     = (studentId) => enqueue('suspendStudent', { studentId });
+  const rejectStudent = (studentId) => enqueue('rejectStudent', { studentId });
+  const suspendStudent = (studentId) => enqueue('suspendStudent', { studentId });
 
-  // Admin — Teachers
-  const addTeacher  = (data) => enqueue('addTeacher', data);
+  const addTeacher = (data) => enqueue('addTeacher', data);
   const getTeachers = () => enqueue('getTeachers', {}, 'GET');
 
-  // Classes
-  const createClass  = (data) => enqueue('createClass', data);
-  const getClasses   = (filters = {}) => enqueue('getClasses', filters, 'GET');
-  const updateClass  = (data) => enqueue('updateClass', data);
-  const deleteClass  = (classId) => enqueue('deleteClass', { classId });
+  const createClass = (data) => enqueue('createClass', data);
+  const getClasses = (filters = {}) => enqueue('getClasses', filters, 'GET');
+  const updateClass = (data) => enqueue('updateClass', data);
+  const deleteClass = (classId) => enqueue('deleteClass', { classId });
 
-  // Enrollments
-  const enrollStudent  = (studentId, classId) => enqueue('enrollStudent', { studentId, classId });
+  const enrollStudent = (studentId, classId) => enqueue('enrollStudent', { studentId, classId });
   const getEnrollments = (filters = {}) => enqueue('getEnrollments', filters, 'GET');
 
-  // Schedule
   const getStudentSchedule = (studentId) => enqueue('getStudentSchedule', { studentId }, 'GET');
-  const getAllSchedule      = () => enqueue('getAllSchedule', {}, 'GET');
+  const getAllSchedule = () => enqueue('getAllSchedule', {}, 'GET');
 
-  // Attendance
   const markAttendance = (classId, sessionDate, records) =>
-    enqueue('markAttendance', {
-      classId, sessionDate, records,
-      markedBy: getAuthUserId()
-    });
-  const getAttendance      = (filters = {}) => enqueue('getAttendance', filters, 'GET');
+    enqueue('markAttendance', { classId, sessionDate, records, markedBy: getAuthUserId() });
+  const getAttendance = (filters = {}) => enqueue('getAttendance', filters, 'GET');
   const getClassAttendance = (classId, sessionDate) =>
     enqueue('getClassAttendance', { classId, sessionDate }, 'GET');
 
-  // Progress
-  const addProgress = (data) => enqueue('addProgress', {
-    ...data, teacherId: getAuthUserId()
-  });
+  const addProgress = (data) => enqueue('addProgress', { ...data, teacherId: getAuthUserId() });
   const getProgress = (studentId) => enqueue('getProgress', { studentId }, 'GET');
 
-  // Announcements
-  const createAnnouncement = (data) => enqueue('createAnnouncement', {
-    ...data, postedBy: getAuthUserName()
-  });
-  const getAnnouncements = (audience, classId) =>
-    enqueue('getAnnouncements', { audience, classId }, 'GET');
+  const createAnnouncement = (data) => enqueue('createAnnouncement', { ...data, postedBy: getAuthUserName() });
+  const getAnnouncements = (audience, classId) => enqueue('getAnnouncements', { audience, classId }, 'GET');
 
-  // Stats
   const getDashboardStats = () => enqueue('getDashboardStats', {}, 'GET');
 
-  // ── Quran API (external — no queue needed) ───────────────
+  // Quran API
   const QURAN_API = 'https://api.alquran.cloud/v1';
 
   async function getQuranSurah(surahNumber, edition = 'quran-uthmani') {
@@ -210,283 +232,19 @@ const API = (() => {
   }
 
   return {
-    // Auth
+    testConnection,  // Add this to test connectivity
     register, login, verifyToken,
-    // Students
     getPendingStudents, getAllStudents, approveStudent, rejectStudent, suspendStudent,
-    // Teachers
     addTeacher, getTeachers,
-    // Classes
     createClass, getClasses, updateClass, deleteClass,
-    // Enrollments
     enrollStudent, getEnrollments,
-    // Schedule
     getStudentSchedule, getAllSchedule,
-    // Attendance
     markAttendance, getAttendance, getClassAttendance,
-    // Progress
     addProgress, getProgress,
-    // Announcements
     createAnnouncement, getAnnouncements,
-    // Stats
     getDashboardStats,
-    // Quran
     getQuranSurah, getQuranSurahList, getQuranAyah, getPrayerTimes,
-    // Utils
     isConfigured: () => !APPS_SCRIPT_URL.includes('YOUR_SCRIPT_ID')
   };
 
-})();
-
-// ============================================================
-//  Auth.js — Session management
-// ============================================================
-const Auth = (() => {
-  const TOKEN_KEY   = 'qa_token';
-  const USER_KEY    = 'qa_user';
-  const ROLE_KEY    = 'qa_role';
-
-  function saveSession(token, user, role) {
-    localStorage.setItem(TOKEN_KEY, token);
-    localStorage.setItem(USER_KEY, JSON.stringify(user));
-    localStorage.setItem(ROLE_KEY, role);
-  }
-
-  function clearSession() {
-    localStorage.removeItem(TOKEN_KEY);
-    localStorage.removeItem(USER_KEY);
-    localStorage.removeItem(ROLE_KEY);
-  }
-
-  function getToken()    { return localStorage.getItem(TOKEN_KEY); }
-  function getUser()     { 
-    try { 
-      const user = localStorage.getItem(USER_KEY);
-      return user ? JSON.parse(user) : null;
-    } catch { return null; }
-  }
-  function getRole()     { return localStorage.getItem(ROLE_KEY); }
-  function getUserId()   { 
-    const u = getUser(); 
-    return u ? (u.ID || u.AdminID || u.StudentID || u.id || '') : ''; 
-  }
-  function getUserName() { 
-    const u = getUser(); 
-    return u ? (u.FullName || u.fullName || 'Unknown') : 'Unknown'; 
-  }
-  function isLoggedIn()  { return !!getToken(); }
-
-  async function login(email, password, role) {
-    const res = await API.login(email, password, role);
-    if (res.success !== false) {
-      saveSession(res.token, res.user, res.role);
-    }
-    return res;
-  }
-
-  function logout() {
-    clearSession();
-    window.location.href = '/index.html';
-  }
-
-  // Guard: redirect if not logged in or wrong role
-  function requireAuth(expectedRole) {
-    if (!isLoggedIn()) {
-      window.location.href = '/index.html?redirect=' + encodeURIComponent(window.location.pathname);
-      return false;
-    }
-    if (expectedRole && getRole() !== expectedRole) {
-      const roleMap = { 
-        admin: '/admin/dashboard.html', 
-        teacher: '/teacher/dashboard.html', 
-        student: '/student/dashboard.html' 
-      };
-      window.location.href = roleMap[getRole()] || '/index.html';
-      return false;
-    }
-    return true;
-  }
-
-  return {
-    saveSession, clearSession,
-    getToken, getUser, getRole, getUserId, getUserName,
-    isLoggedIn, login, logout, requireAuth
-  };
-})();
-
-// ============================================================
-//  Utils.js — Shared helpers
-// ============================================================
-const Utils = (() => {
-
-  // Show toast notification
-  function toast(message, type = 'info', duration = 3500) {
-    const existing = document.querySelector('.qa-toast');
-    if (existing) existing.remove();
-
-    const el = document.createElement('div');
-    el.className = `qa-toast qa-toast--${type}`;
-    el.innerHTML = `<span class="qa-toast__icon">${iconFor(type)}</span><span>${message}</span>`;
-    document.body.appendChild(el);
-
-    requestAnimationFrame(() => el.classList.add('qa-toast--show'));
-    setTimeout(() => {
-      el.classList.remove('qa-toast--show');
-      setTimeout(() => el.remove(), 300);
-    }, duration);
-  }
-
-  function iconFor(type) {
-    return { success: '✓', error: '✕', warning: '⚠', info: 'ℹ' }[type] || 'ℹ';
-  }
-
-  // Show/hide loading spinner
-  function showLoader(text = 'Loading...') {
-    let el = document.getElementById('qa-loader');
-    if (!el) {
-      el = document.createElement('div');
-      el.id = 'qa-loader';
-      el.innerHTML = `<div class="qa-loader__backdrop"><div class="qa-loader__box"><div class="qa-loader__pattern"></div><div class="qa-loader__spinner"></div><p>${text}</p></div></div>`;
-      document.body.appendChild(el);
-    }
-    el.style.display = 'flex';
-  }
-
-  function hideLoader() {
-    const el = document.getElementById('qa-loader');
-    if (el) el.style.display = 'none';
-  }
-  
-  // Show error message
-  function showError(message, containerId) {
-    toast(message, 'error');
-    if (containerId) {
-      const container = document.getElementById(containerId);
-      if (container) {
-        const errorDiv = document.createElement('div');
-        errorDiv.className = 'error-message';
-        errorDiv.textContent = message;
-        container.prepend(errorDiv);
-        setTimeout(() => errorDiv.remove(), 5000);
-      }
-    }
-  }
-
-  // Show success message
-  function showSuccess(message, containerId) {
-    toast(message, 'success');
-  }
-
-  // Format UTC time to local
-  function utcToLocal(timeStr, daysOfWeek) {
-    try {
-      const [h, m] = timeStr.split(':').map(Number);
-      const now = new Date();
-      now.setUTCHours(h, m, 0, 0);
-      return now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    } catch { return timeStr; }
-  }
-
-  // Format date nicely
-  function formatDate(dateStr) {
-    if (!dateStr) return '';
-    return new Date(dateStr).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
-  }
-
-  // Parse days array
-  function parseDays(raw) {
-    try { return typeof raw === 'string' ? JSON.parse(raw) : (raw || []); } catch { return []; }
-  }
-
-  function daysDisplay(raw) {
-    const dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-    return parseDays(raw).map(d => typeof d === 'number' ? dayNames[d] : d).join(', ');
-  }
-
-  // Validate email
-  function isValidEmail(email) {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-  }
-
-  // Capitalize
-  function capitalize(str) {
-    return str ? str.charAt(0).toUpperCase() + str.slice(1) : '';
-  }
-
-  // Truncate
-  function truncate(str, n = 80) {
-    return str && str.length > n ? str.slice(0, n) + '...' : str;
-  }
-
-  // Attendance heatmap data
-  function buildHeatmap(attendanceRecords) {
-    const map = {};
-    attendanceRecords.forEach(r => {
-      map[r.SessionDate] = r.Status;
-    });
-    return map;
-  }
-
-  // Generate initials avatar
-  function initialsAvatar(name, size = 40) {
-    const parts = (name || 'U').split(' ');
-    const initials = parts.map(p => p[0]).slice(0, 2).join('').toUpperCase();
-    return `<div class="qa-avatar" style="width:${size}px;height:${size}px;">${initials}</div>`;
-  }
-
-  // Sanitize HTML
-  function sanitize(str) {
-    const div = document.createElement('div');
-    div.textContent = str || '';
-    return div.innerHTML;
-  }
-
-  // Get time until next class
-  function timeUntilClass(timeUTC, daysOfWeek) {
-    const days = parseDays(daysOfWeek);
-    const now = new Date();
-    const [h, m] = (timeUTC || '00:00').split(':').map(Number);
-
-    let minDiff = Infinity;
-    days.forEach(day => {
-      const next = new Date();
-      next.setUTCHours(h, m, 0, 0);
-      let diff = (next - now) / 60000;
-      if (diff < 0) diff += 7 * 24 * 60;
-      if (diff < minDiff) minDiff = diff;
-    });
-
-    if (minDiff === Infinity || minDiff < 0) return null;
-    if (minDiff < 10) return 'Starting now!';
-    if (minDiff < 60) return `In ${Math.round(minDiff)} min`;
-    const hrs = Math.round(minDiff / 60);
-    if (hrs < 24) return `In ${hrs}h`;
-    return `In ${Math.round(hrs/24)}d`;
-  }
-
-  // Islamic greeting based on time
-  function islamicGreeting() {
-    const h = new Date().getHours();
-    if (h < 12) return 'صباح الخير — Good Morning';
-    if (h < 17) return 'مساء الخير — Good Afternoon';
-    return 'مساء النور — Good Evening';
-  }
-
-  // Async wrapper with loading
-  async function withLoader(fn, loaderText = 'Please wait...') {
-    showLoader(loaderText);
-    try {
-      return await fn();
-    } finally {
-      hideLoader();
-    }
-  }
-
-  return {
-    toast, showLoader, hideLoader, showError, showSuccess, withLoader,
-    utcToLocal, formatDate, parseDays, daysDisplay,
-    isValidEmail, capitalize, truncate,
-    buildHeatmap, initialsAvatar, sanitize,
-    timeUntilClass, islamicGreeting
-  };
 })();
