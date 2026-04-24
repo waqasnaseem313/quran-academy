@@ -5,7 +5,7 @@
 const API = (() => {
 
   // ── CONFIG — REPLACE THIS WITH YOUR DEPLOYED URL ────────
-  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx3wdNTyA4RnBVEbtKEfIOCrMFFVFHCl6XijsD4d66MbtB9CBwxldEwxrfHiWcnldsh/exec';
+  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwDPYdVrej30Qpz76u3QxWc8v80TB_bKFaM3mVFZW4Ute8BBalamgQAhjKyj3so-SlS/exec';
   
   // Add a test endpoint to verify connectivity
   const TEST_MODE = true; // Set to false in production
