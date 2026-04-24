@@ -1,8 +1,11 @@
 // ============================================================
-//  QURAN ACADEMY — api.js
+//  QURAN ACADEMY — api.js (FIXED)
 //  Google Apps Script Web App interface + request queue
 //  Replace APPS_SCRIPT_URL with your deployed Web App URL
 // ============================================================
+
+// Make sure Auth is defined first (load this after Auth.js)
+// OR define Auth before API if in same file
 
 const API = (() => {
 
@@ -30,6 +33,7 @@ const API = (() => {
         const result = await rawRequest(item.action, item.body, item.method);
         item.resolve(result);
       } catch (err) {
+        console.error(`Request failed for ${item.action}:`, err);
         item.reject(err);
       }
       if (queue.length > 0) await sleep(RATE_LIMIT_MS);
@@ -38,34 +42,83 @@ const API = (() => {
   }
 
   async function rawRequest(action, body = {}, method = 'POST') {
-    const token = Auth.getToken();
+    // Try to get token, but don't fail if Auth not available
+    let token = null;
+    try {
+      if (typeof Auth !== 'undefined' && Auth.getToken) {
+        token = Auth.getToken();
+      }
+    } catch(e) {
+      console.warn('Auth not available yet');
+    }
 
-    let url  = APPS_SCRIPT_URL;
+    let url = APPS_SCRIPT_URL;
     let opts = {};
 
     if (method === 'GET') {
-      const params = new URLSearchParams({ action, ...body });
+      // For GET requests, put everything in URL params
+      const params = new URLSearchParams();
+      params.append('action', action);
+      
+      // Add all body parameters to URL
+      Object.keys(body).forEach(key => {
+        if (body[key] !== undefined && body[key] !== null) {
+          params.append(key, typeof body[key] === 'object' ? JSON.stringify(body[key]) : body[key]);
+        }
+      });
+      
       if (token) params.append('token', token);
       url = url + '?' + params.toString();
       opts = { method: 'GET' };
     } else {
+      // For POST requests, send JSON in body with action
       const payload = { action, ...body };
       if (token) payload.token = token;
+      
       opts = {
         method: 'POST',
-        headers: { 'Content-Type': 'text/plain' },
+        headers: { 
+          'Content-Type': 'application/json'  // FIXED: Changed from text/plain
+        },
         body: JSON.stringify(payload)
       };
     }
 
-    const res = await fetch(url, opts);
-    const data = await res.json();
-
-    if (!data.success) throw new Error(data.error || 'Request failed');
-    return data;
+    try {
+      const res = await fetch(url, opts);
+      
+      // Check if response is OK
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+      }
+      
+      const data = await res.json();
+      
+      if (!data.success) {
+        throw new Error(data.error || 'Request failed');
+      }
+      
+      return data;
+    } catch (err) {
+      console.error(`API Error (${action}):`, err);
+      throw err;
+    }
   }
 
   function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+  // ── Helper to safely get auth info ──────────────────────
+  function getAuthUserId() {
+    try {
+      return typeof Auth !== 'undefined' && Auth.getUserId ? Auth.getUserId() : '';
+    } catch { return ''; }
+  }
+  
+  function getAuthUserName() {
+    try {
+      return typeof Auth !== 'undefined' && Auth.getUserName ? Auth.getUserName() : 'System';
+    } catch { return 'System'; }
+  }
 
   // ── Public API methods ───────────────────────────────────
 
@@ -78,7 +131,7 @@ const API = (() => {
   const getPendingStudents = () => enqueue('getPendingStudents', {}, 'GET');
   const getAllStudents      = () => enqueue('getAllStudents', {}, 'GET');
   const approveStudent     = (studentId, classGroupId) =>
-    enqueue('approveStudent', { studentId, classGroupId, approvedBy: Auth.getUserName() });
+    enqueue('approveStudent', { studentId, classGroupId, approvedBy: getAuthUserName() });
   const rejectStudent      = (studentId) => enqueue('rejectStudent', { studentId });
   const suspendStudent     = (studentId) => enqueue('suspendStudent', { studentId });
 
@@ -104,7 +157,7 @@ const API = (() => {
   const markAttendance = (classId, sessionDate, records) =>
     enqueue('markAttendance', {
       classId, sessionDate, records,
-      markedBy: Auth.getUserId()
+      markedBy: getAuthUserId()
     });
   const getAttendance      = (filters = {}) => enqueue('getAttendance', filters, 'GET');
   const getClassAttendance = (classId, sessionDate) =>
@@ -112,13 +165,13 @@ const API = (() => {
 
   // Progress
   const addProgress = (data) => enqueue('addProgress', {
-    ...data, teacherId: Auth.getUserId()
+    ...data, teacherId: getAuthUserId()
   });
   const getProgress = (studentId) => enqueue('getProgress', { studentId }, 'GET');
 
   // Announcements
   const createAnnouncement = (data) => enqueue('createAnnouncement', {
-    ...data, postedBy: Auth.getUserName()
+    ...data, postedBy: getAuthUserName()
   });
   const getAnnouncements = (audience, classId) =>
     enqueue('getAnnouncements', { audience, classId }, 'GET');
@@ -185,9 +238,8 @@ const API = (() => {
 
 })();
 
-
 // ============================================================
-//  Auth.js — Session management (same file or separate)
+//  Auth.js — Session management
 // ============================================================
 const Auth = (() => {
   const TOKEN_KEY   = 'qa_token';
@@ -207,15 +259,28 @@ const Auth = (() => {
   }
 
   function getToken()    { return localStorage.getItem(TOKEN_KEY); }
-  function getUser()     { try { return JSON.parse(localStorage.getItem(USER_KEY)); } catch { return null; } }
+  function getUser()     { 
+    try { 
+      const user = localStorage.getItem(USER_KEY);
+      return user ? JSON.parse(user) : null;
+    } catch { return null; }
+  }
   function getRole()     { return localStorage.getItem(ROLE_KEY); }
-  function getUserId()   { const u = getUser(); return u ? (u.ID || u.AdminID || u.StudentID || '') : ''; }
-  function getUserName() { const u = getUser(); return u ? (u.FullName || 'Unknown') : 'Unknown'; }
+  function getUserId()   { 
+    const u = getUser(); 
+    return u ? (u.ID || u.AdminID || u.StudentID || u.id || '') : ''; 
+  }
+  function getUserName() { 
+    const u = getUser(); 
+    return u ? (u.FullName || u.fullName || 'Unknown') : 'Unknown'; 
+  }
   function isLoggedIn()  { return !!getToken(); }
 
   async function login(email, password, role) {
     const res = await API.login(email, password, role);
-    saveSession(res.token, res.user, res.role);
+    if (res.success !== false) {
+      saveSession(res.token, res.user, res.role);
+    }
     return res;
   }
 
@@ -227,12 +292,15 @@ const Auth = (() => {
   // Guard: redirect if not logged in or wrong role
   function requireAuth(expectedRole) {
     if (!isLoggedIn()) {
-      window.location.href = '/index.html?redirect=' + encodeURIComponent(window.location.href);
+      window.location.href = '/index.html?redirect=' + encodeURIComponent(window.location.pathname);
       return false;
     }
     if (expectedRole && getRole() !== expectedRole) {
-      // Try to send to right dashboard
-      const roleMap = { admin: '/admin/dashboard.html', teacher: '/teacher/dashboard.html', student: '/student/dashboard.html' };
+      const roleMap = { 
+        admin: '/admin/dashboard.html', 
+        teacher: '/teacher/dashboard.html', 
+        student: '/student/dashboard.html' 
+      };
       window.location.href = roleMap[getRole()] || '/index.html';
       return false;
     }
@@ -245,7 +313,6 @@ const Auth = (() => {
     isLoggedIn, login, logout, requireAuth
   };
 })();
-
 
 // ============================================================
 //  Utils.js — Shared helpers
@@ -289,6 +356,26 @@ const Utils = (() => {
     const el = document.getElementById('qa-loader');
     if (el) el.style.display = 'none';
   }
+  
+  // Show error message
+  function showError(message, containerId) {
+    toast(message, 'error');
+    if (containerId) {
+      const container = document.getElementById(containerId);
+      if (container) {
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'error-message';
+        errorDiv.textContent = message;
+        container.prepend(errorDiv);
+        setTimeout(() => errorDiv.remove(), 5000);
+      }
+    }
+  }
+
+  // Show success message
+  function showSuccess(message, containerId) {
+    toast(message, 'success');
+  }
 
   // Format UTC time to local
   function utcToLocal(timeStr, daysOfWeek) {
@@ -308,7 +395,7 @@ const Utils = (() => {
 
   // Parse days array
   function parseDays(raw) {
-    try { return typeof raw === 'string' ? JSON.parse(raw) : raw; } catch { return []; }
+    try { return typeof raw === 'string' ? JSON.parse(raw) : (raw || []); } catch { return []; }
   }
 
   function daysDisplay(raw) {
@@ -369,7 +456,7 @@ const Utils = (() => {
       if (diff < minDiff) minDiff = diff;
     });
 
-    if (minDiff < 0) return null;
+    if (minDiff === Infinity || minDiff < 0) return null;
     if (minDiff < 10) return 'Starting now!';
     if (minDiff < 60) return `In ${Math.round(minDiff)} min`;
     const hrs = Math.round(minDiff / 60);
@@ -396,7 +483,7 @@ const Utils = (() => {
   }
 
   return {
-    toast, showLoader, hideLoader, withLoader,
+    toast, showLoader, hideLoader, showError, showSuccess, withLoader,
     utcToLocal, formatDate, parseDays, daysDisplay,
     isValidEmail, capitalize, truncate,
     buildHeatmap, initialsAvatar, sanitize,
