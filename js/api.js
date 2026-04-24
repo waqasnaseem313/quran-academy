@@ -10,7 +10,7 @@
 const API = (() => {
 
   // ── CONFIG — replace this after deploying Code.gs ────────
-  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzDFficDYQJC5N5kBwVtoHJCmGIXOkX9eKYHjcSPeucBccx6XGPBBPR3THXlU_RNRIl/exec';
+  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx3wdNTyA4RnBVEbtKEfIOCrMFFVFHCl6XijsD4d66MbtB9CBwxldEwxrfHiWcnldsh/exec';
 
   // ── Request queue (avoid hitting 30 req/min limit) ────────
   const queue = [];
