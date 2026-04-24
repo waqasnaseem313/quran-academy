@@ -1,0 +1,944 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Live Classroom — Quran Academy</title>
+  <link rel="stylesheet" href="../css/main.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.2/peerjs.min.js"></script>
+  <style>
+    body { background: var(--dark); overflow: hidden; }
+
+    .qa-classroom {
+      display: grid;
+      grid-template-rows: 56px 1fr 80px;
+      height: 100vh;
+      width: 100vw;
+    }
+
+    /* Top bar */
+    .qa-cls-topbar {
+      background: var(--teal-800);
+      border-bottom: 1px solid rgba(201,168,76,0.15);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      gap: 12px;
+      z-index: 10;
+    }
+
+    .qa-cls-title {
+      font-family: var(--font-display);
+      font-size: 0.95rem;
+      color: var(--gold-300);
+      letter-spacing: 0.04em;
+    }
+
+    .qa-cls-info {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      font-family: var(--font-ui);
+      font-size: 0.78rem;
+      color: var(--teal-200);
+    }
+
+    .qa-cls-timer {
+      font-family: var(--font-display);
+      color: var(--gold-400);
+      font-size: 0.9rem;
+    }
+
+    /* Main stage */
+    .qa-cls-stage {
+      display: grid;
+      grid-template-columns: 1fr 280px;
+      overflow: hidden;
+    }
+
+    /* Main video area */
+    .qa-cls-main {
+      position: relative;
+      background: #000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    #mainVideo {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      background: #000;
+    }
+
+    .qa-cls-main__overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 12px;
+      color: var(--teal-200);
+      font-family: var(--font-ui);
+    }
+
+    .qa-cls-main__overlay .big-icon { font-size: 4rem; opacity: 0.3; }
+
+    /* Right panel: participants + chat */
+    .qa-cls-panel {
+      background: var(--teal-900);
+      border-left: 1px solid rgba(201,168,76,0.1);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .qa-cls-tabs {
+      display: flex;
+      border-bottom: 1px solid rgba(201,168,76,0.1);
+    }
+
+    .qa-cls-tab {
+      flex: 1;
+      padding: 10px;
+      background: none;
+      border: none;
+      color: var(--teal-200);
+      font-family: var(--font-ui);
+      font-size: 0.78rem;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all var(--transition);
+    }
+
+    .qa-cls-tab.active {
+      color: var(--gold-400);
+      border-bottom-color: var(--gold-500);
+    }
+
+    /* Participants panel */
+    #participantsPanel {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px;
+    }
+
+    .qa-participant {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px;
+      border-radius: var(--radius-md);
+      margin-bottom: 6px;
+      background: rgba(13,76,76,0.3);
+      transition: background var(--transition);
+    }
+
+    .qa-participant:hover { background: rgba(13,76,76,0.5); }
+
+    .qa-participant__video {
+      width: 64px;
+      height: 48px;
+      border-radius: 6px;
+      background: #000;
+      object-fit: cover;
+      flex-shrink: 0;
+      border: 1px solid rgba(201,168,76,0.15);
+    }
+
+    .qa-participant__name {
+      font-family: var(--font-ui);
+      font-size: 0.8rem;
+      color: var(--cream);
+      flex: 1;
+    }
+
+    .qa-participant__status {
+      display: flex;
+      gap: 4px;
+    }
+
+    .qa-participant__btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 0.85rem;
+      opacity: 0.7;
+      transition: opacity var(--transition);
+      padding: 2px;
+    }
+
+    .qa-participant__btn:hover { opacity: 1; }
+
+    /* Chat panel */
+    #chatPanel {
+      flex: 1;
+      display: none;
+      flex-direction: column;
+    }
+
+    #chatPanel.active { display: flex; }
+
+    .qa-chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px;
+    }
+
+    .qa-chat-msg {
+      margin-bottom: 10px;
+      animation: qa-fade-in 0.2s ease;
+    }
+
+    .qa-chat-msg__meta {
+      font-size: 0.68rem;
+      color: var(--teal-300);
+      font-family: var(--font-ui);
+      margin-bottom: 2px;
+    }
+
+    .qa-chat-msg__text {
+      font-size: 0.82rem;
+      color: var(--cream);
+      background: rgba(13,76,76,0.4);
+      padding: 7px 10px;
+      border-radius: 0 8px 8px 8px;
+      display: inline-block;
+      max-width: 90%;
+      word-break: break-word;
+    }
+
+    .qa-chat-msg--self .qa-chat-msg__text {
+      background: rgba(201,168,76,0.15);
+      border-radius: 8px 0 8px 8px;
+      border: 1px solid rgba(201,168,76,0.2);
+    }
+
+    .qa-chat-msg--self { text-align: right; }
+    .qa-chat-msg--self .qa-chat-msg__meta { text-align: right; }
+
+    .qa-chat-input-row {
+      display: flex;
+      gap: 8px;
+      padding: 10px;
+      border-top: 1px solid rgba(201,168,76,0.1);
+    }
+
+    .qa-chat-input-row input {
+      flex: 1;
+      background: rgba(10,22,40,0.7);
+      border: 1px solid rgba(201,168,76,0.2);
+      border-radius: 20px;
+      padding: 8px 14px;
+      color: var(--cream);
+      font-family: var(--font-body);
+      font-size: 0.82rem;
+      outline: none;
+    }
+
+    .qa-chat-input-row input:focus { border-color: var(--gold-500); }
+
+    .qa-chat-send {
+      background: var(--teal-600);
+      border: none;
+      border-radius: 50%;
+      width: 36px;
+      height: 36px;
+      color: var(--gold-300);
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background var(--transition);
+      flex-shrink: 0;
+    }
+
+    .qa-chat-send:hover { background: var(--teal-500); }
+
+    /* Bottom controls */
+    .qa-cls-controls {
+      background: var(--teal-800);
+      border-top: 1px solid rgba(201,168,76,0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      padding: 0 20px;
+    }
+
+    .qa-ctrl-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      background: rgba(13,76,76,0.5);
+      border: 1px solid rgba(201,168,76,0.15);
+      border-radius: var(--radius-md);
+      padding: 10px 16px;
+      cursor: pointer;
+      color: var(--cream);
+      font-family: var(--font-ui);
+      font-size: 0.62rem;
+      transition: all var(--transition);
+      min-width: 70px;
+    }
+
+    .qa-ctrl-btn:hover { background: rgba(13,76,76,0.8); border-color: rgba(201,168,76,0.3); }
+    .qa-ctrl-btn.active { background: var(--teal-600); border-color: var(--gold-500); color: var(--gold-300); }
+    .qa-ctrl-btn.danger { background: var(--red); border-color: transparent; }
+    .qa-ctrl-btn.danger:hover { background: var(--red-lt); }
+    .qa-ctrl-btn .ctrl-icon { font-size: 1.3rem; }
+
+    /* Raise hand indicator */
+    .qa-raise-indicator {
+      position: absolute;
+      top: 16px;
+      left: 16px;
+      background: rgba(201,168,76,0.9);
+      color: var(--dark);
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-family: var(--font-ui);
+      font-size: 0.82rem;
+      font-weight: 600;
+      display: none;
+      animation: qa-fade-in 0.2s ease;
+    }
+
+    /* Attendance panel (teacher only) */
+    .qa-att-panel {
+      position: absolute;
+      top: 0; right: 0; bottom: 0;
+      width: 320px;
+      background: var(--teal-900);
+      border-left: 1px solid rgba(201,168,76,0.15);
+      z-index: 20;
+      display: none;
+      flex-direction: column;
+      padding: 20px;
+      overflow-y: auto;
+    }
+
+    .qa-att-panel.open { display: flex; }
+
+    .qa-att-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+
+    .qa-att-row__name { flex: 1; font-size: 0.85rem; font-family: var(--font-ui); }
+    .qa-att-row__btns { display: flex; gap: 6px; }
+
+    .qa-att-status-btn {
+      padding: 4px 10px;
+      border-radius: 20px;
+      border: 1px solid transparent;
+      font-size: 0.7rem;
+      font-family: var(--font-ui);
+      font-weight: 600;
+      cursor: pointer;
+      transition: all var(--transition);
+      background: rgba(255,255,255,0.05);
+      color: var(--teal-200);
+    }
+
+    .qa-att-status-btn.present { background: rgba(45,122,79,0.3); color: var(--green-lt); border-color: var(--green); }
+    .qa-att-status-btn.absent  { background: rgba(139,32,32,0.3);  color: var(--red-lt);   border-color: var(--red); }
+    .qa-att-status-btn.late    { background: rgba(192,122,32,0.3); color: var(--amber);     border-color: var(--amber); }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .qa-cls-stage { grid-template-columns: 1fr; }
+      .qa-cls-panel { display: none; }
+      .qa-cls-controls { gap: 6px; }
+      .qa-ctrl-btn { min-width: 56px; padding: 8px 10px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="qa-classroom">
+
+    <!-- Top bar -->
+    <div class="qa-cls-topbar">
+      <div class="qa-cls-title" id="classTitle">🕌 Live Class</div>
+      <div class="qa-cls-info">
+        <span id="participantCount">0 participants</span>
+        <span class="qa-live-pulse">LIVE</span>
+        <span class="qa-cls-timer" id="classTimer">00:00</span>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <span id="myName" style="font-size:0.78rem;color:var(--teal-200);font-family:var(--font-ui);"></span>
+        <a href="../student/dashboard.html" id="backLink" class="qa-btn qa-btn--outline qa-btn--sm">← Back</a>
+      </div>
+    </div>
+
+    <!-- Stage -->
+    <div class="qa-cls-stage">
+
+      <!-- Main video -->
+      <div class="qa-cls-main">
+        <video id="mainVideo" autoplay playsinline muted></video>
+        <div class="qa-cls-main__overlay" id="mainOverlay">
+          <div class="big-icon">🕌</div>
+          <p style="font-family:var(--font-ui);font-size:0.9rem;">Waiting for stream...</p>
+          <p class="text-xs text-teal" id="roomCodeDisplay"></p>
+        </div>
+
+        <!-- Raise hand indicator -->
+        <div class="qa-raise-indicator" id="raiseIndicator">✋ Hand Raised — waiting for teacher</div>
+
+        <!-- Attendance panel (teacher) -->
+        <div class="qa-att-panel" id="attPanel">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+            <div style="font-family:var(--font-display);font-size:0.95rem;color:var(--gold-300);">📋 Attendance</div>
+            <button onclick="document.getElementById('attPanel').classList.remove('open')" style="background:none;border:none;color:var(--teal-200);cursor:pointer;font-size:1.1rem;">✕</button>
+          </div>
+          <div id="attList"></div>
+          <button class="qa-btn qa-btn--primary qa-btn--block" style="margin-top:16px;" onclick="saveAttendance()">💾 Save Attendance</button>
+        </div>
+      </div>
+
+      <!-- Right panel -->
+      <div class="qa-cls-panel">
+        <div class="qa-cls-tabs">
+          <button class="qa-cls-tab active" onclick="switchPanel('participants', this)">👥 Participants</button>
+          <button class="qa-cls-tab" onclick="switchPanel('chat', this)">💬 Chat</button>
+        </div>
+
+        <div id="participantsPanel">
+          <!-- Self -->
+          <div class="qa-participant" id="selfParticipant">
+            <video id="selfVideo" class="qa-participant__video" autoplay playsinline muted></video>
+            <div class="qa-participant__name" id="selfParticipantName">You</div>
+            <div class="qa-participant__status">🟢</div>
+          </div>
+          <div id="remoteParticipants"></div>
+        </div>
+
+        <div id="chatPanel">
+          <div class="qa-chat-messages" id="chatMessages"></div>
+          <div class="qa-chat-input-row">
+            <input type="text" id="chatInput" placeholder="Type a message..." maxlength="300" />
+            <button class="qa-chat-send" onclick="sendChat()">➤</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="qa-cls-controls">
+      <!-- Mic -->
+      <button class="qa-ctrl-btn active" id="btnMic" onclick="toggleMic()">
+        <span class="ctrl-icon">🎙️</span>
+        <span>Mic</span>
+      </button>
+
+      <!-- Camera -->
+      <button class="qa-ctrl-btn" id="btnCam" onclick="toggleCam()">
+        <span class="ctrl-icon">📷</span>
+        <span>Camera</span>
+      </button>
+
+      <!-- Screen Share (teacher only) -->
+      <button class="qa-ctrl-btn" id="btnScreen" onclick="toggleScreen()" style="display:none;">
+        <span class="ctrl-icon">🖥️</span>
+        <span>Screen</span>
+      </button>
+
+      <!-- Raise Hand (student only) -->
+      <button class="qa-ctrl-btn" id="btnRaiseHand" onclick="toggleRaiseHand()">
+        <span class="ctrl-icon">✋</span>
+        <span>Raise Hand</span>
+      </button>
+
+      <!-- Attendance (teacher only) -->
+      <button class="qa-ctrl-btn" id="btnAttendance" onclick="openAttendance()" style="display:none;">
+        <span class="ctrl-icon">📋</span>
+        <span>Attendance</span>
+      </button>
+
+      <!-- Quran -->
+      <a class="qa-ctrl-btn" href="../student/classroom.html?quran=1" target="_blank">
+        <span class="ctrl-icon">📖</span>
+        <span>Quran</span>
+      </a>
+
+      <!-- End / Leave -->
+      <button class="qa-ctrl-btn danger" onclick="leaveClass()">
+        <span class="ctrl-icon">📵</span>
+        <span id="leaveLabel">Leave</span>
+      </button>
+    </div>
+  </div>
+
+  <script src="../js/api.js"></script>
+  <script>
+    // ── Parse URL params ────────────────────────────────────
+    const params  = new URLSearchParams(location.search);
+    const ROOM    = params.get('room') || 'DEMO-ROOM-001';
+    const CLASS_ID = params.get('class') || '';
+    const role    = Auth.getRole() || 'student';
+    const isTeacher = role === 'teacher' || role === 'admin';
+    const user    = Auth.getUser();
+    const myName  = user?.FullName || 'Participant';
+
+    document.getElementById('myName').textContent = myName;
+    document.getElementById('roomCodeDisplay').textContent = 'Room: ' + ROOM;
+    document.getElementById('classTitle').textContent = '🕌 ' + (params.get('name') || 'Live Class');
+    document.getElementById('selfParticipantName').textContent = myName + ' (You)';
+
+    // Show teacher-only controls
+    if (isTeacher) {
+      document.getElementById('btnScreen').style.display = '';
+      document.getElementById('btnAttendance').style.display = '';
+      document.getElementById('btnRaiseHand').style.display = 'none';
+      document.getElementById('leaveLabel').textContent = 'End Class';
+      document.getElementById('backLink').href = '../teacher/dashboard.html';
+    }
+
+    // ── State ──────────────────────────────────────────────
+    let localStream   = null;
+    let screenStream  = null;
+    let peer          = null;
+    let connections   = {}; // peerId -> DataConnection
+    let calls         = {}; // peerId -> MediaConnection
+    let handRaised    = false;
+    let micOn         = true;
+    let camOn         = false;
+    let attendanceMap = {}; // studentId -> status
+    let startTime     = Date.now();
+    let enrolledStudents = [];
+
+    // Timer
+    setInterval(() => {
+      const s = Math.floor((Date.now() - startTime) / 1000);
+      document.getElementById('classTimer').textContent =
+        String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0');
+    }, 1000);
+
+    // ── Init PeerJS ────────────────────────────────────────
+    async function initPeer() {
+      // Generate peer ID: role_roomcode_random
+      const peerId = (isTeacher ? 'TCH' : 'STU') + '_' + ROOM.replace(/-/g,'') + '_' + Math.random().toString(36).substr(2, 5);
+
+      peer = new Peer(peerId, {
+        debug: 0,
+        config: {
+          iceServers: [
+            { urls: 'stun:stun.l.google.com:19302' },
+            { urls: 'stun:stun1.l.google.com:19302' }
+          ]
+        }
+      });
+
+      peer.on('open', (id) => {
+        console.log('Connected to PeerJS. My ID:', id);
+        if (isTeacher) {
+          Utils.toast('Class started! Room: ' + ROOM, 'success');
+        } else {
+          // Student connects to teacher
+          connectToTeacher();
+        }
+      });
+
+      peer.on('connection', (conn) => {
+        setupDataConnection(conn);
+      });
+
+      peer.on('call', (call) => {
+        // Answer with local stream
+        call.answer(localStream);
+        handleIncomingCall(call);
+      });
+
+      peer.on('error', (err) => {
+        console.error('PeerJS error:', err);
+        if (err.type === 'unavailable-id') {
+          Utils.toast('Room connection error. Check room code.', 'error');
+        }
+      });
+    }
+
+    function connectToTeacher() {
+      const teacherPeerId = 'TCH_' + ROOM.replace(/-/g,'');
+      // Try to find teacher (simplified — in production use signaling server)
+      setTimeout(() => {
+        try {
+          const conn = peer.connect(teacherPeerId + '_host');
+          if (conn) setupDataConnection(conn);
+          // Call teacher for video
+          if (localStream) {
+            const call = peer.call(teacherPeerId + '_host', localStream);
+            if (call) handleIncomingCall(call);
+          }
+        } catch(e) {
+          console.log('Teacher not connected yet:', e.message);
+        }
+      }, 1000);
+    }
+
+    function setupDataConnection(conn) {
+      connections[conn.peer] = conn;
+
+      conn.on('open', () => {
+        updateParticipantCount();
+        // Send name
+        conn.send({ type: 'join', name: myName, role });
+      });
+
+      conn.on('data', (data) => {
+        handleDataMessage(data, conn.peer);
+      });
+
+      conn.on('close', () => {
+        delete connections[conn.peer];
+        removeRemoteParticipant(conn.peer);
+        updateParticipantCount();
+      });
+    }
+
+    function handleIncomingCall(call) {
+      calls[call.peer] = call;
+      call.on('stream', (remoteStream) => {
+        if (isTeacher) {
+          addRemoteParticipant(call.peer, remoteStream);
+        } else {
+          // Student sees teacher stream as main
+          const main = document.getElementById('mainVideo');
+          main.srcObject = remoteStream;
+          main.muted = false;
+          document.getElementById('mainOverlay').style.display = 'none';
+        }
+      });
+
+      call.on('close', () => {
+        delete calls[call.peer];
+        if (!isTeacher) {
+          document.getElementById('mainOverlay').style.display = 'flex';
+        }
+      });
+    }
+
+    function handleDataMessage(data, fromPeerId) {
+      switch (data.type) {
+        case 'join':
+          addParticipantEntry(fromPeerId, data.name, data.role);
+          updateParticipantCount();
+          break;
+        case 'chat':
+          appendChatMessage(data.name, data.message, false);
+          break;
+        case 'raise_hand':
+          showRaisedHand(fromPeerId, data.name, data.raised);
+          break;
+        case 'mute':
+          // Teacher muting student
+          if (data.targetPeer === peer.id && localStream) {
+            localStream.getAudioTracks().forEach(t => t.enabled = false);
+            micOn = false;
+            updateMicBtn();
+            Utils.toast('You were muted by the teacher.', 'warning');
+          }
+          break;
+      }
+    }
+
+    function broadcast(data) {
+      Object.values(connections).forEach(conn => {
+        if (conn.open) conn.send(data);
+      });
+    }
+
+    // ── Media Controls ─────────────────────────────────────
+    async function initMedia() {
+      try {
+        localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+        document.getElementById('selfVideo').srcObject = localStream;
+        micOn = true;
+        updateMicBtn();
+        await initPeer();
+      } catch (err) {
+        Utils.toast('Could not access microphone: ' + err.message, 'warning');
+        localStream = new MediaStream();
+        await initPeer();
+      }
+    }
+
+    function toggleMic() {
+      if (!localStream) return;
+      micOn = !micOn;
+      localStream.getAudioTracks().forEach(t => t.enabled = micOn);
+      updateMicBtn();
+    }
+
+    function updateMicBtn() {
+      const btn = document.getElementById('btnMic');
+      btn.querySelector('.ctrl-icon').textContent = micOn ? '🎙️' : '🔇';
+      btn.classList.toggle('active', micOn);
+    }
+
+    async function toggleCam() {
+      if (camOn) {
+        localStream.getVideoTracks().forEach(t => { t.stop(); localStream.removeTrack(t); });
+        camOn = false;
+        document.getElementById('btnCam').classList.remove('active');
+        document.getElementById('selfVideo').srcObject = localStream;
+      } else {
+        try {
+          const vs = await navigator.mediaDevices.getUserMedia({ video: true });
+          vs.getVideoTracks().forEach(t => localStream.addTrack(t));
+          camOn = true;
+          document.getElementById('btnCam').classList.add('active');
+          document.getElementById('selfVideo').srcObject = localStream;
+        } catch (err) {
+          Utils.toast('Camera error: ' + err.message, 'error');
+        }
+      }
+    }
+
+    async function toggleScreen() {
+      if (screenStream) {
+        screenStream.getTracks().forEach(t => t.stop());
+        screenStream = null;
+        document.getElementById('btnScreen').classList.remove('active');
+        // Restore camera/mic stream
+        const main = document.getElementById('mainVideo');
+        main.srcObject = localStream;
+        document.getElementById('mainOverlay').style.display = 'none';
+        Utils.toast('Screen share stopped.', 'info');
+      } else {
+        try {
+          screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
+          const main = document.getElementById('mainVideo');
+          main.srcObject = screenStream;
+          main.muted = true;
+          document.getElementById('mainOverlay').style.display = 'none';
+          document.getElementById('btnScreen').classList.add('active');
+          Utils.toast('Screen share started! Students can see your screen.', 'success');
+
+          // Replace video track in all existing calls
+          const videoTrack = screenStream.getVideoTracks()[0];
+          Object.values(calls).forEach(call => {
+            const sender = call.peerConnection?.getSenders()?.find(s => s.track?.kind === 'video');
+            if (sender) sender.replaceTrack(videoTrack);
+          });
+
+          screenStream.getVideoTracks()[0].addEventListener('ended', () => {
+            toggleScreen();
+          });
+        } catch (err) {
+          Utils.toast('Screen share cancelled or failed.', 'warning');
+        }
+      }
+    }
+
+    function toggleRaiseHand() {
+      handRaised = !handRaised;
+      document.getElementById('btnRaiseHand').classList.toggle('active', handRaised);
+      document.getElementById('raiseIndicator').style.display = handRaised ? 'block' : 'none';
+      broadcast({ type: 'raise_hand', name: myName, raised: handRaised });
+    }
+
+    // ── Participants ───────────────────────────────────────
+    function addParticipantEntry(peerId, name, pRole) {
+      const container = document.getElementById('remoteParticipants');
+      const existing = document.getElementById('part-' + peerId);
+      if (existing) return;
+
+      const div = document.createElement('div');
+      div.className = 'qa-participant';
+      div.id = 'part-' + peerId;
+      div.innerHTML = `
+        <video class="qa-participant__video" id="vid-${peerId}" autoplay playsinline muted style="display:none;"></video>
+        <div style="width:64px;height:48px;background:var(--teal-600);border-radius:6px;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);color:var(--gold-300);font-size:0.9rem;flex-shrink:0;" id="avatar-${peerId}">
+          ${name.split(' ').map(n=>n[0]).join('').slice(0,2)}
+        </div>
+        <div>
+          <div class="qa-participant__name">${Utils.sanitize(name)}</div>
+          <div style="font-size:0.68rem;color:var(--teal-300);">${pRole}</div>
+        </div>
+        <div class="qa-participant__status" id="status-${peerId}">🟢</div>
+        ${isTeacher ? `<button class="qa-participant__btn" onclick="muteStudent('${peerId}')" title="Mute">🔇</button>` : ''}
+      `;
+      container.appendChild(div);
+    }
+
+    function addRemoteParticipant(peerId, stream) {
+      const vid = document.getElementById('vid-' + peerId);
+      const avatar = document.getElementById('avatar-' + peerId);
+      if (vid && stream) {
+        vid.srcObject = stream;
+        vid.style.display = '';
+        if (avatar) avatar.style.display = 'none';
+      }
+
+      // Teacher: show first student's stream in main area
+      if (isTeacher && Object.keys(calls).length === 1) {
+        const main = document.getElementById('mainVideo');
+        main.srcObject = stream;
+        main.muted = false;
+        document.getElementById('mainOverlay').style.display = 'none';
+      }
+    }
+
+    function removeRemoteParticipant(peerId) {
+      const el = document.getElementById('part-' + peerId);
+      if (el) el.remove();
+    }
+
+    function showRaisedHand(peerId, name, raised) {
+      const statusEl = document.getElementById('status-' + peerId);
+      if (statusEl) statusEl.textContent = raised ? '✋' : '🟢';
+      if (raised && isTeacher) Utils.toast(name + ' raised their hand!', 'info');
+    }
+
+    function muteStudent(peerId) {
+      if (connections[peerId]) {
+        connections[peerId].send({ type: 'mute', targetPeer: peerId });
+      }
+    }
+
+    function updateParticipantCount() {
+      const count = Object.keys(connections).length + 1;
+      document.getElementById('participantCount').textContent = count + ' participant' + (count !== 1 ? 's' : '');
+    }
+
+    // ── Chat ──────────────────────────────────────────────
+    function sendChat() {
+      const input = document.getElementById('chatInput');
+      const msg = input.value.trim();
+      if (!msg) return;
+      broadcast({ type: 'chat', name: myName, message: msg });
+      appendChatMessage(myName, msg, true);
+      input.value = '';
+    }
+
+    document.getElementById('chatInput').addEventListener('keydown', e => {
+      if (e.key === 'Enter') sendChat();
+    });
+
+    function appendChatMessage(name, message, isSelf) {
+      const container = document.getElementById('chatMessages');
+      const div = document.createElement('div');
+      div.className = 'qa-chat-msg' + (isSelf ? ' qa-chat-msg--self' : '');
+      div.innerHTML = `
+        <div class="qa-chat-msg__meta">${isSelf ? 'You' : Utils.sanitize(name)}</div>
+        <div class="qa-chat-msg__text">${Utils.sanitize(message)}</div>
+      `;
+      container.appendChild(div);
+      container.scrollTop = container.scrollHeight;
+    }
+
+    // ── Panel switcher ─────────────────────────────────────
+    function switchPanel(panel, btn) {
+      document.querySelectorAll('.qa-cls-tab').forEach(t => t.classList.remove('active'));
+      btn.classList.add('active');
+
+      const pp = document.getElementById('participantsPanel');
+      const cp = document.getElementById('chatPanel');
+      pp.style.display = panel === 'participants' ? '' : 'none';
+      cp.style.display = panel === 'chat' ? 'flex' : 'none';
+      cp.classList.toggle('active', panel === 'chat');
+    }
+
+    // ── Attendance ─────────────────────────────────────────
+    async function openAttendance() {
+      document.getElementById('attPanel').classList.toggle('open');
+
+      // Load enrolled students
+      if (CLASS_ID && !enrolledStudents.length) {
+        try {
+          const res = await API.getEnrollments({ classId: CLASS_ID });
+          enrolledStudents = res.enrollments || [];
+          renderAttendanceList();
+        } catch(e) {}
+      }
+    }
+
+    function renderAttendanceList() {
+      const list = document.getElementById('attList');
+
+      // Merge enrolled + connected
+      const connected = Object.keys(connections).map(pid => ({
+        id: pid,
+        name: document.getElementById('part-' + pid)?.querySelector('.qa-participant__name')?.textContent || pid
+      }));
+
+      list.innerHTML = connected.map(s => {
+        const status = attendanceMap[s.id] || 'Present';
+        return `
+          <div class="qa-att-row">
+            <div class="qa-att-row__name">${Utils.sanitize(s.name)}</div>
+            <div class="qa-att-row__btns">
+              <button class="qa-att-status-btn ${status==='Present'?'present':''}" onclick="setAttStatus('${s.id}','Present',this)">P</button>
+              <button class="qa-att-status-btn ${status==='Absent'?'absent':''}" onclick="setAttStatus('${s.id}','Absent',this)">A</button>
+              <button class="qa-att-status-btn ${status==='Late'?'late':''}" onclick="setAttStatus('${s.id}','Late',this)">L</button>
+            </div>
+          </div>
+        `;
+      }).join('') || '<p style="color:var(--teal-200);font-size:0.82rem;">No students connected yet.</p>';
+    }
+
+    function setAttStatus(studentId, status, btn) {
+      attendanceMap[studentId] = status;
+      const row = btn.closest('.qa-att-row');
+      row.querySelectorAll('.qa-att-status-btn').forEach(b => b.classList.remove('present','absent','late'));
+      btn.classList.add(status.toLowerCase());
+    }
+
+    async function saveAttendance() {
+      const today = new Date().toISOString().split('T')[0];
+      const records = Object.entries(attendanceMap).map(([id, status]) => ({
+        studentId: id,
+        studentName: document.getElementById('part-' + id)?.querySelector('.qa-participant__name')?.textContent || id,
+        status
+      }));
+
+      if (!records.length) { Utils.toast('No attendance to save.', 'warning'); return; }
+
+      try {
+        await Utils.withLoader(() => API.markAttendance(CLASS_ID, today, records), 'Saving attendance...');
+        Utils.toast('Attendance saved!', 'success');
+        document.getElementById('attPanel').classList.remove('open');
+      } catch (err) {
+        Utils.toast('Error saving: ' + err.message, 'error');
+      }
+    }
+
+    // ── Leave / End ────────────────────────────────────────
+    function leaveClass() {
+      if (isTeacher && confirm('End class for all participants?')) {
+        broadcast({ type: 'class_ended' });
+        saveAttendance();
+      }
+      if (peer) peer.destroy();
+      if (localStream) localStream.getTracks().forEach(t => t.stop());
+      if (screenStream) screenStream.getTracks().forEach(t => t.stop());
+      window.location.href = isTeacher ? '../teacher/dashboard.html' : '../student/dashboard.html';
+    }
+
+    // ── Backup link fallback ────────────────────────────────
+    setTimeout(() => {
+      if (Object.keys(connections).length === 0 && !isTeacher) {
+        const backup = params.get('backup');
+        if (backup) {
+          Utils.toast('Could not connect via WebRTC. Use backup link.', 'warning');
+          document.getElementById('mainOverlay').innerHTML = `
+            <div class="big-icon">⚠️</div>
+            <p>WebRTC connection failed</p>
+            <a href="${backup}" target="_blank" class="qa-btn qa-btn--primary" style="margin-top:12px;">Open Backup Meeting Link</a>
+          `;
+        }
+      }
+    }, 15000);
+
+    // ── Start ─────────────────────────────────────────────
+    initMedia();
+  </script>
+</body>
+</html>

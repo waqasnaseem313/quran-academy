@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Register — Quran Academy</title>
+  <link rel="stylesheet" href="css/main.css" />
+</head>
+<body>
+  <div class="qa-bg-pattern"></div>
+  <div class="qa-auth-page">
+    <div style="width:100%;max-width:640px;position:relative;z-index:1;">
+
+      <!-- Logo -->
+      <div style="text-align:center;margin-bottom:32px;">
+        <div style="font-family:var(--font-arabic);font-size:2.2rem;color:var(--gold-400);">﷽</div>
+        <div style="font-family:var(--font-display);font-size:1.3rem;color:var(--cream);margin-top:4px;letter-spacing:0.08em;">Quran Academy</div>
+        <div style="font-family:var(--font-ui);font-size:0.75rem;color:var(--teal-200);margin-top:6px;letter-spacing:0.1em;text-transform:uppercase;">Student Registration</div>
+      </div>
+
+      <div class="qa-auth-card" style="max-width:640px;">
+        <div style="font-family:var(--font-display);font-size:1.1rem;color:var(--gold-300);margin-bottom:24px;padding-bottom:14px;border-bottom:1px solid rgba(201,168,76,0.15);">
+          📝 Create Your Account
+        </div>
+
+        <div id="successMsg" style="display:none;text-align:center;padding:40px 20px;">
+          <div style="font-size:3rem;margin-bottom:16px;">🎉</div>
+          <div style="font-family:var(--font-display);font-size:1.2rem;color:var(--gold-400);margin-bottom:8px;">Registration Submitted!</div>
+          <div style="font-size:0.9rem;color:var(--teal-200);margin-bottom:8px;">Your application is being reviewed by our admin team.</div>
+          <div id="submissionId" style="font-size:0.78rem;color:var(--teal-300);font-family:var(--font-ui);margin-bottom:24px;"></div>
+          <div style="background:rgba(13,76,76,0.3);border:1px solid rgba(201,168,76,0.15);border-radius:12px;padding:16px;margin-bottom:24px;font-size:0.85rem;color:var(--cream);">
+            You will be notified once your account is approved. You can then log in with your registered email and password.
+          </div>
+          <a href="index.html" class="qa-btn qa-btn--primary">← Back to Login</a>
+        </div>
+
+        <div id="regForm">
+          <div id="regError" class="qa-error-msg mb-16" style="display:none;padding:10px 14px;background:rgba(139,32,32,0.2);border-radius:6px;border:1px solid rgba(192,57,43,0.3);"></div>
+
+          <div class="qa-form-grid">
+            <div class="qa-form-group">
+              <label class="qa-label">Full Name<span class="required">*</span></label>
+              <input type="text" id="fullName" class="qa-input" placeholder="e.g. Ahmad Khan" />
+            </div>
+            <div class="qa-form-group">
+              <label class="qa-label">Email Address<span class="required">*</span></label>
+              <input type="email" id="email" class="qa-input" placeholder="your@email.com" />
+            </div>
+          </div>
+
+          <div class="qa-form-grid">
+            <div class="qa-form-group">
+              <label class="qa-label">Password<span class="required">*</span></label>
+              <input type="password" id="password" class="qa-input" placeholder="Min. 6 characters" />
+            </div>
+            <div class="qa-form-group">
+              <label class="qa-label">Confirm Password<span class="required">*</span></label>
+              <input type="password" id="confirmPassword" class="qa-input" placeholder="Re-enter password" />
+            </div>
+          </div>
+
+          <div class="qa-form-grid">
+            <div class="qa-form-group">
+              <label class="qa-label">WhatsApp Number<span class="required">*</span></label>
+              <input type="tel" id="whatsapp" class="qa-input" placeholder="+92 3XX XXXXXXX" />
+            </div>
+            <div class="qa-form-group">
+              <label class="qa-label">Country<span class="required">*</span></label>
+              <select id="country" class="qa-select">
+                <option value="">Select country...</option>
+                <option>Pakistan</option><option>United Kingdom</option><option>United States</option>
+                <option>Canada</option><option>Australia</option><option>Saudi Arabia</option>
+                <option>UAE</option><option>Malaysia</option><option>Bangladesh</option>
+                <option>India</option><option>Turkey</option><option>Egypt</option><option>Other</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="qa-form-grid">
+            <div class="qa-form-group">
+              <label class="qa-label">Age<span class="required">*</span></label>
+              <input type="number" id="age" class="qa-input" placeholder="Age" min="4" max="80" />
+            </div>
+            <div class="qa-form-group">
+              <label class="qa-label">Gender<span class="required">*</span></label>
+              <select id="gender" class="qa-select">
+                <option value="">Select...</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="qa-form-group">
+            <label class="qa-label">Current Quran Level<span class="required">*</span></label>
+            <div class="qa-checkbox-group">
+              <label><input type="radio" name="level" value="Qaida" /> Qaida (Beginner)</label>
+              <label><input type="radio" name="level" value="Nazra" /> Nazra (Reading)</label>
+              <label><input type="radio" name="level" value="Hifz" /> Hifz (Memorization)</label>
+              <label><input type="radio" name="level" value="Tajweed" /> Tajweed</label>
+              <label><input type="radio" name="level" value="Islamic Studies" /> Islamic Studies</label>
+            </div>
+          </div>
+
+          <div class="qa-form-group">
+            <label class="qa-label">Preferred Class Time</label>
+            <select id="preferredTime" class="qa-select">
+              <option value="">Select preferred time slot...</option>
+              <option value="Morning 8AM-10AM UTC">Morning (8–10 AM UTC)</option>
+              <option value="Morning 10AM-12PM UTC">Late Morning (10AM–12PM UTC)</option>
+              <option value="Afternoon 1PM-3PM UTC">Afternoon (1–3 PM UTC)</option>
+              <option value="Evening 5PM-7PM UTC">Evening (5–7 PM UTC)</option>
+              <option value="Evening 7PM-9PM UTC">Night (7–9 PM UTC)</option>
+              <option value="Flexible">Flexible / Any time</option>
+            </select>
+          </div>
+
+          <div style="background:rgba(13,76,76,0.2);border:1px solid rgba(201,168,76,0.1);border-radius:8px;padding:14px;margin-bottom:24px;font-size:0.8rem;color:var(--teal-200);line-height:1.6;">
+            <strong style="color:var(--gold-300);">📌 Note:</strong> After registration, your request will be reviewed by our admin team. 
+            Once approved, you'll be assigned to a class and can access the student portal. 
+            You will be contacted via WhatsApp with your login credentials.
+          </div>
+
+          <button id="registerBtn" class="qa-btn qa-btn--primary qa-btn--block qa-btn--lg" onclick="submitRegistration()">
+            Submit Registration →
+          </button>
+
+          <div style="text-align:center;margin-top:18px;font-size:0.82rem;color:var(--teal-200);font-family:var(--font-ui);">
+            Already registered? <a href="index.html" style="color:var(--gold-400);font-weight:600;">Sign In →</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script>
+    // Redirect if logged in
+    if (Auth.isLoggedIn()) {
+      const map = { admin: 'admin/dashboard.html', teacher: 'teacher/dashboard.html', student: 'student/dashboard.html' };
+      window.location.href = map[Auth.getRole()] || 'index.html';
+    }
+
+    async function submitRegistration() {
+      const btn = document.getElementById('registerBtn');
+      const errEl = document.getElementById('regError');
+      errEl.style.display = 'none';
+
+      const fullName = document.getElementById('fullName').value.trim();
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+      const confirmPw = document.getElementById('confirmPassword').value;
+      const whatsapp = document.getElementById('whatsapp').value.trim();
+      const country = document.getElementById('country').value;
+      const age = document.getElementById('age').value;
+      const gender = document.getElementById('gender').value;
+      const levelEl = document.querySelector('input[name="level"]:checked');
+      const level = levelEl ? levelEl.value : '';
+      const preferredTime = document.getElementById('preferredTime').value;
+
+      // Validation
+      const errors = [];
+      if (!fullName) errors.push('Full name is required.');
+      if (!email || !Utils.isValidEmail(email)) errors.push('Valid email is required.');
+      if (password.length < 6) errors.push('Password must be at least 6 characters.');
+      if (password !== confirmPw) errors.push('Passwords do not match.');
+      if (!whatsapp) errors.push('WhatsApp number is required.');
+      if (!country) errors.push('Please select your country.');
+      if (!age || age < 4) errors.push('Please enter a valid age.');
+      if (!gender) errors.push('Please select gender.');
+      if (!level) errors.push('Please select your Quran level.');
+
+      if (errors.length) {
+        errEl.innerHTML = errors.map(e => '• ' + e).join('<br>');
+        errEl.style.display = 'block';
+        errEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = 'Submitting...';
+
+      try {
+        const res = await API.register({
+          fullName, email, password, whatsapp, country, age, gender, level, preferredTime
+        });
+
+        document.getElementById('regForm').style.display = 'none';
+        document.getElementById('successMsg').style.display = 'block';
+        document.getElementById('submissionId').textContent = 'Your Reference ID: ' + res.studentId;
+
+      } catch (err) {
+        errEl.textContent = err.message;
+        errEl.style.display = 'block';
+        btn.disabled = false;
+        btn.textContent = 'Submit Registration →';
+      }
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Attendance — Quran Academy Admin</title>
+  <link rel="stylesheet" href="../css/main.css" />
+  <style>
+    .qa-att-summary-card {
+      background: linear-gradient(135deg, var(--teal-700), var(--teal-800));
+      border: 1px solid rgba(201,168,76,0.18);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      transition: all var(--transition);
+    }
+    .qa-att-summary-card:hover {
+      border-color: rgba(201,168,76,0.3);
+      transform: translateY(-2px);
+    }
+    .qa-att-summary-card.low-att {
+      border-color: rgba(139,32,32,0.4);
+      background: linear-gradient(135deg, rgba(80,20,20,0.4), var(--teal-800));
+    }
+    .qa-mini-bar {
+      height: 6px;
+      background: rgba(255,255,255,0.08);
+      border-radius: 3px;
+      overflow: hidden;
+      margin-top: 4px;
+    }
+    .qa-mini-bar__fill {
+      height: 100%;
+      border-radius: 3px;
+      transition: width 0.8s ease;
+    }
+    .qa-att-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      display: inline-block;
+    }
+    .qa-date-filter {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .qa-section-toggle {
+      display: flex;
+      gap: 4px;
+      background: rgba(10,22,40,0.5);
+      border-radius: var(--radius-md);
+      padding: 4px;
+      border: 1px solid rgba(201,168,76,0.1);
+      margin-bottom: 20px;
+    }
+    .qa-section-toggle button {
+      flex: 1;
+      padding: 9px 16px;
+      background: none;
+      border: none;
+      border-radius: 6px;
+      font-family: var(--font-ui);
+      font-size: 0.82rem;
+      color: var(--teal-200);
+      cursor: pointer;
+      transition: all var(--transition);
+    }
+    .qa-section-toggle button.active {
+      background: var(--teal-600);
+      color: var(--gold-300);
+    }
+  </style>
+</head>
+<body>
+  <div class="qa-bg-pattern"></div>
+  <div class="qa-shell">
+    <aside class="qa-sidebar" id="sidebar">
+      <div class="qa-sidebar__logo">
+        <span class="qa-logo-arabic">أكاديمية القرآن</span>
+        <h1>Quran Academy</h1>
+        <span class="qa-logo-sub">Admin Panel</span>
+      </div>
+      <ul class="qa-nav">
+        <li class="qa-nav__section">Main</li>
+        <li class="qa-nav__item"><a href="dashboard.html"><span class="icon">🏠</span> Dashboard</a></li>
+        <li class="qa-nav__item"><a href="students.html"><span class="icon">🎓</span> Students</a></li>
+        <li class="qa-nav__item"><a href="teachers.html"><span class="icon">👨‍🏫</span> Teachers</a></li>
+        <li class="qa-nav__section">Classes</li>
+        <li class="qa-nav__item"><a href="classes.html"><span class="icon">📚</span> Manage Classes</a></li>
+        <li class="qa-nav__item"><a href="schedule.html"><span class="icon">📅</span> Schedule</a></li>
+        <li class="qa-nav__item"><a href="attendance.html" class="active"><span class="icon">✅</span> Attendance</a></li>
+        <li class="qa-nav__section">Communication</li>
+        <li class="qa-nav__item"><a href="announcements.html"><span class="icon">📢</span> Announcements</a></li>
+      </ul>
+      <div class="qa-sidebar__user" id="sidebarUser"></div>
+      <button class="qa-sidebar__logout" onclick="Auth.logout()">🚪 Sign Out</button>
+    </aside>
+
+    <main class="qa-main">
+      <div class="qa-topbar">
+        <div style="display:flex;align-items:center;gap:14px;">
+          <button class="qa-hamburger" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</button>
+          <span class="qa-topbar__title">Attendance Reports</span>
+        </div>
+        <div class="qa-topbar__right">
+          <button class="qa-btn qa-btn--outline qa-btn--sm" onclick="exportAttCSV()">⬇ Export CSV</button>
+        </div>
+      </div>
+
+      <div class="qa-page">
+        <!-- Summary stats -->
+        <div class="qa-stats-grid" style="margin-bottom:24px;">
+          <div class="qa-stat"><div class="qa-stat__icon">✅</div><div class="qa-stat__num" id="statTotal">—</div><div class="qa-stat__label">Total Sessions</div></div>
+          <div class="qa-stat"><div class="qa-stat__icon">🟢</div><div class="qa-stat__num" id="statPresent">—</div><div class="qa-stat__label">Present</div></div>
+          <div class="qa-stat"><div class="qa-stat__icon">🔴</div><div class="qa-stat__num" id="statAbsent">—</div><div class="qa-stat__label">Absent</div></div>
+          <div class="qa-stat"><div class="qa-stat__icon">⚠️</div><div class="qa-stat__num" id="statLowAtt">—</div><div class="qa-stat__label">Low Attendance (&lt;70%)</div></div>
+        </div>
+
+        <!-- Filters -->
+        <div class="qa-card" style="margin-bottom:24px;">
+          <div class="qa-card__title">🔍 Filter Records</div>
+          <div class="qa-date-filter">
+            <div class="qa-form-group" style="margin-bottom:0;flex:1;min-width:160px;">
+              <label class="qa-label">From Date</label>
+              <input type="date" id="fromDate" class="qa-input" />
+            </div>
+            <div class="qa-form-group" style="margin-bottom:0;flex:1;min-width:160px;">
+              <label class="qa-label">To Date</label>
+              <input type="date" id="toDate" class="qa-input" />
+            </div>
+            <div class="qa-form-group" style="margin-bottom:0;flex:1;min-width:160px;">
+              <label class="qa-label">Class</label>
+              <select id="filterClass" class="qa-select">
+                <option value="">All Classes</option>
+              </select>
+            </div>
+            <div class="qa-form-group" style="margin-bottom:0;flex:1;min-width:160px;">
+              <label class="qa-label">Status</label>
+              <select id="filterStatus" class="qa-select">
+                <option value="">All Statuses</option>
+                <option value="Present">Present</option>
+                <option value="Absent">Absent</option>
+                <option value="Late">Late</option>
+              </select>
+            </div>
+            <div style="padding-top:22px;">
+              <button class="qa-btn qa-btn--primary" onclick="applyFilters()">Apply</button>
+              <button class="qa-btn qa-btn--outline" onclick="clearFilters()" style="margin-left:8px;">Clear</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section toggle -->
+        <div class="qa-section-toggle">
+          <button class="active" onclick="showSection('by-student',this)">🎓 By Student</button>
+          <button onclick="showSection('by-class',this)">📚 By Class</button>
+          <button onclick="showSection('raw-log',this)">📋 Raw Log</button>
+        </div>
+
+        <!-- By Student -->
+        <div id="sec-by-student">
+          <div style="margin-bottom:12px;font-family:var(--font-ui);font-size:0.78rem;color:var(--teal-200);">
+            ⚠️ Students below 70% attendance are highlighted in red.
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;" id="studentAttGrid">
+            <div class="qa-empty" style="grid-column:1/-1;"><div class="qa-empty__icon">📊</div><div class="qa-empty__title">Loading...</div></div>
+          </div>
+        </div>
+
+        <!-- By Class -->
+        <div id="sec-by-class" style="display:none;">
+          <div class="qa-card">
+            <div class="qa-table-wrap">
+              <table class="qa-table" id="byClassTable">
+                <thead>
+                  <tr><th>Class Name</th><th>Subject</th><th>Teacher</th><th>Total Sessions</th><th>Total Present</th><th>Avg Attendance</th></tr>
+                </thead>
+                <tbody id="byClassTbody">
+                  <tr><td colspan="6" style="text-align:center;padding:30px;color:var(--teal-300);">Loading...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Raw Log -->
+        <div id="sec-raw-log" style="display:none;">
+          <div class="qa-card">
+            <div class="qa-search" style="margin-bottom:16px;">
+              <span class="qa-search__icon">🔍</span>
+              <input type="text" id="logSearch" placeholder="Search by student name..." oninput="filterRawLog()" />
+            </div>
+            <div class="qa-table-wrap">
+              <table class="qa-table">
+                <thead>
+                  <tr><th>Date</th><th>Student</th><th>Class</th><th>Status</th><th>Marked By</th><th>Marked At</th></tr>
+                </thead>
+                <tbody id="rawLogTbody">
+                  <tr><td colspan="6" style="text-align:center;padding:30px;color:var(--teal-300);">Loading...</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div style="margin-top:12px;font-size:0.78rem;color:var(--teal-300);font-family:var(--font-ui);" id="rawLogFooter"></div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="../js/api.js"></script>
+  <script>
+    Auth.requireAuth('admin');
+    const user = Auth.getUser();
+    document.getElementById('sidebarUser').innerHTML = `
+      <div class="qa-avatar">${(user?.FullName||'A').split(' ').map(n=>n[0]).join('').slice(0,2)}</div>
+      <div><div class="name">${user?.FullName||'Admin'}</div><div class="role">Administrator</div></div>
+    `;
+    document.querySelector('.qa-main').addEventListener('click', () => document.getElementById('sidebar').classList.remove('open'));
+
+    let allAttendance = [];
+    let allStudents   = [];
+    let allClasses    = [];
+    let filteredAtt   = [];
+
+    // Pre-fill date range: last 30 days
+    const today = new Date();
+    const month = new Date(); month.setDate(month.getDate() - 30);
+    document.getElementById('toDate').value   = today.toISOString().split('T')[0];
+    document.getElementById('fromDate').value = month.toISOString().split('T')[0];
+
+    // URL param: jump to student
+    const urlParams = new URLSearchParams(location.search);
+    const focusStudent = urlParams.get('student');
+
+    async function loadData() {
+      try {
+        const [attRes, stuRes, clsRes] = await Promise.all([
+          API.getAttendance({}),
+          API.getAllStudents(),
+          API.getClasses({})
+        ]);
+        allAttendance = attRes.attendance || [];
+        allStudents   = (stuRes.students || []).filter(s => s.Status === 'Active');
+        allClasses    = clsRes.classes || [];
+
+        // Populate class filter
+        const sel = document.getElementById('filterClass');
+        allClasses.forEach(c => {
+          const opt = document.createElement('option');
+          opt.value = c.ClassID;
+          opt.textContent = c.ClassName;
+          sel.appendChild(opt);
+        });
+
+        applyFilters();
+      } catch (err) { Utils.toast('Error: ' + err.message, 'error'); }
+    }
+
+    function applyFilters() {
+      const from   = document.getElementById('fromDate').value;
+      const to     = document.getElementById('toDate').value;
+      const clsId  = document.getElementById('filterClass').value;
+      const status = document.getElementById('filterStatus').value;
+
+      filteredAtt = allAttendance.filter(r => {
+        if (from   && r.SessionDate < from)   return false;
+        if (to     && r.SessionDate > to)     return false;
+        if (clsId  && r.ClassID !== clsId)    return false;
+        if (status && r.Status !== status)    return false;
+        return true;
+      });
+
+      updateSummary();
+      renderByStudent();
+      renderByClass();
+      renderRawLog();
+    }
+
+    function clearFilters() {
+      document.getElementById('fromDate').value    = month.toISOString().split('T')[0];
+      document.getElementById('toDate').value      = today.toISOString().split('T')[0];
+      document.getElementById('filterClass').value = '';
+      document.getElementById('filterStatus').value= '';
+      applyFilters();
+    }
+
+    function updateSummary() {
+      const total   = filteredAtt.length;
+      const present = filteredAtt.filter(r => r.Status === 'Present').length;
+      const absent  = filteredAtt.filter(r => r.Status === 'Absent').length;
+
+      // Count students below 70%
+      const byStudent = groupByStudent(filteredAtt);
+      const lowCount  = Object.values(byStudent).filter(d => d.pct < 70).length;
+
+      document.getElementById('statTotal').textContent   = total;
+      document.getElementById('statPresent').textContent = present;
+      document.getElementById('statAbsent').textContent  = absent;
+      document.getElementById('statLowAtt').textContent  = lowCount;
+    }
+
+    function groupByStudent(records) {
+      const map = {};
+      records.forEach(r => {
+        if (!map[r.StudentID]) map[r.StudentID] = { name: r.StudentName, total: 0, present: 0, late: 0, absent: 0 };
+        map[r.StudentID].total++;
+        if (r.Status === 'Present') map[r.StudentID].present++;
+        else if (r.Status === 'Late') { map[r.StudentID].late++; map[r.StudentID].present++; }
+        else map[r.StudentID].absent++;
+      });
+      Object.values(map).forEach(d => { d.pct = d.total ? Math.round((d.present / d.total) * 100) : 0; });
+      return map;
+    }
+
+    function renderByStudent() {
+      const byStudent = groupByStudent(filteredAtt);
+      const el = document.getElementById('studentAttGrid');
+
+      // Merge with student list
+      const entries = allStudents.map(s => {
+        const d = byStudent[s.ID] || { total:0, present:0, absent:0, late:0, pct:0 };
+        return { id: s.ID, name: s.FullName, level: s.Level, ...d };
+      }).filter(e => e.total > 0 || focusStudent === e.id);
+
+      // Sort: low att first, then by name
+      entries.sort((a,b) => a.pct - b.pct);
+
+      if (!entries.length) {
+        el.innerHTML = `<div class="qa-empty" style="grid-column:1/-1;"><div class="qa-empty__icon">📊</div><div class="qa-empty__title">No attendance records in this period</div></div>`;
+        return;
+      }
+
+      el.innerHTML = entries.map(e => {
+        const low = e.pct < 70;
+        const barColor = e.pct >= 85 ? 'var(--green)' : e.pct >= 70 ? 'var(--amber)' : 'var(--red-lt)';
+        return `
+          <div class="qa-att-summary-card${low?' low-att':''}" id="student-att-${e.id}">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div class="qa-avatar" style="width:36px;height:36px;font-size:0.7rem;">${(e.name||'?').split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase()}</div>
+              <div style="flex:1;overflow:hidden;">
+                <div style="font-family:var(--font-ui);font-size:0.88rem;font-weight:500;color:var(--cream);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${Utils.sanitize(e.name)}</div>
+                <div style="font-size:0.7rem;color:var(--teal-200);">${Utils.sanitize(e.level||'')}</div>
+              </div>
+              <div style="font-family:var(--font-display);font-size:1.5rem;color:${barColor};">${e.pct}%</div>
+            </div>
+            <div class="qa-mini-bar"><div class="qa-mini-bar__fill" style="width:${e.pct}%;background:${barColor};"></div></div>
+            <div style="display:flex;gap:12px;font-family:var(--font-ui);font-size:0.72rem;">
+              <span><span class="qa-att-dot" style="background:var(--green);"></span> ${e.present} Present</span>
+              <span><span class="qa-att-dot" style="background:var(--red);"></span> ${e.absent} Absent</span>
+              <span style="color:var(--teal-300);">${e.total} Total</span>
+            </div>
+            ${low ? `<div style="font-size:0.7rem;color:var(--red-lt);font-family:var(--font-ui);font-weight:600;">⚠️ Below 70% — needs follow-up</div>` : ''}
+            <a href="../student/dashboard.html?id=${e.id}" class="qa-btn qa-btn--outline qa-btn--sm" style="font-size:0.72rem;">View Student →</a>
+          </div>
+        `;
+      }).join('');
+
+      // Scroll to focused student
+      if (focusStudent) {
+        setTimeout(() => {
+          const el = document.getElementById('student-att-' + focusStudent);
+          if (el) el.scrollIntoView({ behavior:'smooth', block:'center' });
+        }, 300);
+      }
+    }
+
+    function renderByClass() {
+      const tbody = document.getElementById('byClassTbody');
+      const byClass = {};
+      filteredAtt.forEach(r => {
+        if (!byClass[r.ClassID]) byClass[r.ClassID] = { total:0, present:0 };
+        byClass[r.ClassID].total++;
+        if (r.Status === 'Present' || r.Status === 'Late') byClass[r.ClassID].present++;
+      });
+
+      const rows = allClasses
+        .filter(c => byClass[c.ClassID] && byClass[c.ClassID].total > 0)
+        .map(c => {
+          const d = byClass[c.ClassID];
+          const pct = d.total ? Math.round((d.present/d.total)*100) : 0;
+          const barColor = pct >= 85 ? 'var(--green)' : pct >= 70 ? 'var(--amber)' : 'var(--red-lt)';
+          return `<tr>
+            <td class="font-ui" style="font-weight:500;">${Utils.sanitize(c.ClassName)}</td>
+            <td><span class="qa-badge qa-badge--active" style="font-size:0.65rem;">${c.Subject}</span></td>
+            <td>${Utils.sanitize(c.TeacherName||'—')}</td>
+            <td>${d.total}</td>
+            <td>${d.present}</td>
+            <td>
+              <div style="display:flex;align-items:center;gap:10px;">
+                <div style="flex:1;max-width:80px;height:6px;background:rgba(255,255,255,0.08);border-radius:3px;overflow:hidden;">
+                  <div style="height:100%;width:${pct}%;background:${barColor};border-radius:3px;"></div>
+                </div>
+                <span style="color:${barColor};font-family:var(--font-display);font-size:0.9rem;">${pct}%</span>
+              </div>
+            </td>
+          </tr>`;
+        });
+
+      tbody.innerHTML = rows.length ? rows.join('') :
+        '<tr><td colspan="6" style="text-align:center;color:var(--teal-300);padding:30px;">No data in this period</td></tr>';
+    }
+
+    function renderRawLog() {
+      const records = [...filteredAtt].sort((a,b) => b.SessionDate.localeCompare(a.SessionDate));
+      document.getElementById('rawLogFooter').textContent = records.length + ' records found';
+      displayRawLog(records);
+    }
+
+    function filterRawLog() {
+      const q = document.getElementById('logSearch').value.toLowerCase();
+      const records = filteredAtt.filter(r => !q || (r.StudentName||'').toLowerCase().includes(q));
+      records.sort((a,b) => b.SessionDate.localeCompare(a.SessionDate));
+      displayRawLog(records);
+    }
+
+    function displayRawLog(records) {
+      const tbody = document.getElementById('rawLogTbody');
+      if (!records.length) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--teal-300);padding:30px;">No records</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = records.slice(0, 200).map(r => {
+        const cls = allClasses.find(c => c.ClassID === r.ClassID);
+        return `<tr>
+          <td style="font-size:0.82rem;font-family:var(--font-ui);">${r.SessionDate || '—'}</td>
+          <td>
+            <div style="font-size:0.85rem;color:var(--cream);">${Utils.sanitize(r.StudentName||'—')}</div>
+          </td>
+          <td style="font-size:0.82rem;">${Utils.sanitize(cls?.ClassName || r.ClassID || '—')}</td>
+          <td><span class="qa-badge qa-badge--${(r.Status||'').toLowerCase()}">${r.Status||'—'}</span></td>
+          <td style="font-size:0.78rem;color:var(--teal-200);">${Utils.sanitize(r.MarkedBy||'—')}</td>
+          <td style="font-size:0.72rem;color:var(--teal-300);">${r.MarkedAt ? new Date(r.MarkedAt).toLocaleString() : '—'}</td>
+        </tr>`;
+      }).join('');
+    }
+
+    function showSection(id, btn) {
+      ['by-student','by-class','raw-log'].forEach(s => {
+        document.getElementById('sec-' + s).style.display = s === id ? '' : 'none';
+      });
+      document.querySelectorAll('.qa-section-toggle button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    }
+
+    function exportAttCSV() {
+      const headers = ['SessionDate','StudentID','StudentName','ClassID','Status','MarkedBy','MarkedAt'];
+      const rows = filteredAtt.map(r => headers.map(h => `"${(r[h]||'').toString().replace(/"/g,'""')}"`).join(','));
+      const csv = [headers.join(','), ...rows].join('\n');
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+      a.download = 'attendance_' + today.toISOString().split('T')[0] + '.csv';
+      a.click();
+      Utils.toast('CSV exported!', 'success');
+    }
+
+    loadData();
+  </script>
+</body>
+</html>

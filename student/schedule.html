@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Schedule — Quran Academy</title>
+  <link rel="stylesheet" href="../css/main.css" />
+  <style>
+    .qa-week-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 10px;
+      margin-bottom: 24px;
+    }
+    .qa-week-day {
+      background: linear-gradient(160deg, rgba(13,76,76,0.25), rgba(10,22,40,0.4));
+      border: 1px solid rgba(201,168,76,0.1);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      min-height: 140px;
+      transition: border-color var(--transition);
+    }
+    .qa-week-day.has-class { border-color: rgba(201,168,76,0.2); }
+    .qa-week-day.is-today  { border-color: var(--gold-500); background: rgba(201,168,76,0.05); }
+    .qa-week-day__header {
+      padding: 10px;
+      text-align: center;
+      font-family: var(--font-ui);
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      border-bottom: 1px solid rgba(201,168,76,0.08);
+    }
+    .qa-week-day.is-today .qa-week-day__header { color: var(--gold-400); }
+    .qa-week-day__date {
+      font-family: var(--font-display);
+      font-size: 1.2rem;
+      color: var(--cream);
+      margin-top: 2px;
+    }
+    .qa-week-day.is-today .qa-week-day__date { color: var(--gold-400); }
+    .qa-week-day__body { padding: 8px; }
+    .qa-week-event {
+      background: rgba(13,76,76,0.5);
+      border-left: 3px solid var(--gold-500);
+      border-radius: 6px;
+      padding: 7px 8px;
+      margin-bottom: 6px;
+      font-family: var(--font-ui);
+      font-size: 0.72rem;
+      cursor: pointer;
+      transition: all var(--transition);
+    }
+    .qa-week-event:hover { background: rgba(13,76,76,0.8); }
+    .qa-week-event__time { color: var(--gold-400); font-weight: 600; margin-bottom: 2px; }
+    .qa-week-event__name { color: var(--cream); }
+    .qa-week-event__subj { color: var(--teal-200); font-size: 0.65rem; }
+
+    /* Subject colors */
+    .qa-week-event[data-subj="Qaida"]   { border-color: var(--green); }
+    .qa-week-event[data-subj="Nazra"]   { border-color: var(--teal-300); }
+    .qa-week-event[data-subj="Hifz"]    { border-color: var(--gold-500); }
+    .qa-week-event[data-subj="Tajweed"] { border-color: #9c6ef5; }
+    .qa-week-event[data-subj="Islamic Studies"] { border-color: var(--red-lt); }
+
+    .qa-no-class { text-align: center; padding: 20px 10px; color: var(--teal-300); font-size: 0.7rem; font-family: var(--font-ui); }
+
+    @media (max-width: 900px) {
+      .qa-week-grid { grid-template-columns: repeat(4, 1fr); }
+    }
+    @media (max-width: 600px) {
+      .qa-week-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+  </style>
+</head>
+<body>
+  <div class="qa-bg-pattern"></div>
+  <div class="qa-shell">
+    <aside class="qa-sidebar" id="sidebar">
+      <div class="qa-sidebar__logo">
+        <span class="qa-logo-arabic">أكاديمية القرآن</span>
+        <h1>Quran Academy</h1>
+        <span class="qa-logo-sub">Student Portal</span>
+      </div>
+      <ul class="qa-nav">
+        <li class="qa-nav__section">My Learning</li>
+        <li class="qa-nav__item"><a href="dashboard.html"><span class="icon">🏠</span> Dashboard</a></li>
+        <li class="qa-nav__item"><a href="schedule.html" class="active"><span class="icon">📅</span> My Schedule</a></li>
+        <li class="qa-nav__item"><a href="attendance.html"><span class="icon">✅</span> Attendance</a></li>
+        <li class="qa-nav__item"><a href="progress.html"><span class="icon">📈</span> My Progress</a></li>
+        <li class="qa-nav__section">Classroom</li>
+        <li class="qa-nav__item"><a href="classroom.html"><span class="icon">🎥</span> Join Live Class</a></li>
+      </ul>
+      <div class="qa-sidebar__user" id="sidebarUser"></div>
+      <button class="qa-sidebar__logout" onclick="Auth.logout()">🚪 Sign Out</button>
+    </aside>
+
+    <main class="qa-main">
+      <div class="qa-topbar">
+        <div style="display:flex;align-items:center;gap:14px;">
+          <button class="qa-hamburger" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</button>
+          <span class="qa-topbar__title">My Schedule</span>
+        </div>
+        <div class="qa-topbar__right">
+          <div style="font-family:var(--font-ui);font-size:0.78rem;color:var(--teal-200);">
+            🌍 Times shown in your local timezone
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-page">
+        <!-- This week header -->
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
+          <div>
+            <h2 style="font-family:var(--font-display);font-size:1.1rem;color:var(--gold-300);margin-bottom:4px;" id="weekLabel">This Week</h2>
+            <p style="font-size:0.8rem;color:var(--teal-200);font-family:var(--font-ui);" id="weekDateRange">—</p>
+          </div>
+          <div style="display:flex;gap:8px;">
+            <button class="qa-btn qa-btn--outline qa-btn--sm" onclick="shiftWeek(-1)">← Prev</button>
+            <button class="qa-btn qa-btn--outline qa-btn--sm" onclick="goToday()">Today</button>
+            <button class="qa-btn qa-btn--outline qa-btn--sm" onclick="shiftWeek(1)">Next →</button>
+          </div>
+        </div>
+
+        <!-- Weekly grid -->
+        <div class="qa-week-grid" id="weekGrid"></div>
+
+        <!-- All enrolled classes detail -->
+        <div class="qa-card">
+          <div class="qa-card__title">📚 All My Enrolled Classes</div>
+          <div id="enrolledList">
+            <div class="qa-empty"><div class="qa-empty__icon">📚</div><div class="qa-empty__title">Loading your classes...</div></div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Class detail modal -->
+  <div id="classModal" class="qa-modal-overlay" style="display:none;">
+    <div class="qa-modal" style="max-width:440px;">
+      <div class="qa-modal__title" id="classModalTitle">📚 Class Details</div>
+      <button class="qa-modal__close" onclick="document.getElementById('classModal').style.display='none'">✕</button>
+      <div id="classModalBody"></div>
+    </div>
+  </div>
+
+  <script src="../js/api.js"></script>
+  <script>
+    Auth.requireAuth('student');
+    const user = Auth.getUser();
+    const studentId = Auth.getUserId();
+
+    document.getElementById('sidebarUser').innerHTML = `
+      <div class="qa-avatar">${(user?.FullName||'S').split(' ').map(n=>n[0]).join('').slice(0,2)}</div>
+      <div><div class="name">${user?.FullName||'Student'}</div><div class="role">${user?.Level||'Student'}</div></div>
+    `;
+    document.querySelector('.qa-main').addEventListener('click', () => document.getElementById('sidebar').classList.remove('open'));
+
+    const DAY_NAMES  = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    const DAY_SHORT  = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    let mySchedule   = [];
+    let weekOffset   = 0;
+
+    function getWeekStart(offset = 0) {
+      const d = new Date();
+      d.setDate(d.getDate() - d.getDay() + offset * 7);
+      d.setHours(0,0,0,0);
+      return d;
+    }
+
+    function shiftWeek(dir) { weekOffset += dir; renderWeek(); }
+    function goToday()      { weekOffset = 0;   renderWeek(); }
+
+    async function loadSchedule() {
+      try {
+        const res = await API.getStudentSchedule(studentId);
+        mySchedule = res.schedule || [];
+        renderWeek();
+        renderEnrolledList();
+      } catch (err) { Utils.toast('Error: ' + err.message, 'error'); }
+    }
+
+    function renderWeek() {
+      const weekStart = getWeekStart(weekOffset);
+      const weekEnd   = new Date(weekStart); weekEnd.setDate(weekEnd.getDate() + 6);
+      const today     = new Date().getDay();
+      const fmt       = d => d.toLocaleDateString('en-GB', { day:'numeric', month:'short' });
+
+      document.getElementById('weekLabel').textContent    = weekOffset === 0 ? 'This Week' : weekOffset === 1 ? 'Next Week' : weekOffset === -1 ? 'Last Week' : 'Week of ' + fmt(weekStart);
+      document.getElementById('weekDateRange').textContent = fmt(weekStart) + ' – ' + fmt(weekEnd);
+
+      const grid = document.getElementById('weekGrid');
+      grid.innerHTML = '';
+
+      for (let d = 0; d < 7; d++) {
+        const isToday  = d === today && weekOffset === 0;
+        const dateOfDay = new Date(weekStart); dateOfDay.setDate(dateOfDay.getDate() + d);
+        const dayClasses = mySchedule.filter(cls => Utils.parseDays(cls.DaysOfWeek).includes(d));
+
+        const col = document.createElement('div');
+        col.className = `qa-week-day${dayClasses.length?' has-class':''}${isToday?' is-today':''}`;
+        col.innerHTML = `
+          <div class="qa-week-day__header">
+            ${DAY_SHORT[d]}
+            <div class="qa-week-day__date">${dateOfDay.getDate()}</div>
+          </div>
+          <div class="qa-week-day__body">
+            ${dayClasses.length ? dayClasses.map(cls => {
+              const timeStr = Utils.utcToLocal(cls.TimeUTC);
+              const timeUntil = isToday ? Utils.timeUntilClass(cls.TimeUTC, cls.DaysOfWeek) : null;
+              const isLive = timeUntil === 'Starting now!' || (timeUntil && parseInt(timeUntil) <= 10);
+              return `
+                <div class="qa-week-event" data-subj="${cls.Subject||''}" onclick="openClassModal('${cls.ClassID}')">
+                  <div class="qa-week-event__time">${timeStr}</div>
+                  <div class="qa-week-event__name">${Utils.sanitize(cls.ClassName)}</div>
+                  <div class="qa-week-event__subj">${cls.Subject} · ${cls.DurationMins}m</div>
+                  ${isLive ? `<div style="margin-top:4px;"><a href="classroom.html?room=${cls.MeetingRoomCode}&class=${cls.ClassID}" onclick="event.stopPropagation()" class="qa-live-pulse" style="font-size:0.62rem;">JOIN</a></div>` : ''}
+                </div>
+              `;
+            }).join('') : `<div class="qa-no-class">—</div>`}
+          </div>
+        `;
+        grid.appendChild(col);
+      }
+    }
+
+    function renderEnrolledList() {
+      const el = document.getElementById('enrolledList');
+      if (!mySchedule.length) {
+        el.innerHTML = `<div class="qa-empty"><div class="qa-empty__icon">📚</div><div class="qa-empty__title">No classes enrolled</div><div class="qa-empty__msg">Contact your admin to get assigned to a class.</div></div>`;
+        return;
+      }
+      el.innerHTML = `
+        <div class="qa-table-wrap">
+          <table class="qa-table">
+            <thead>
+              <tr><th>Class Name</th><th>Subject</th><th>Teacher</th><th>Days</th><th>Time (Local)</th><th>Duration</th><th>Actions</th></tr>
+            </thead>
+            <tbody>
+              ${mySchedule.map(cls => `
+                <tr>
+                  <td class="font-ui" style="font-weight:500;">${Utils.sanitize(cls.ClassName)}</td>
+                  <td><span class="qa-badge qa-badge--active" style="font-size:0.65rem;">${cls.Subject}</span></td>
+                  <td>${Utils.sanitize(cls.TeacherName||'—')}</td>
+                  <td class="text-sm">${Utils.daysDisplay(cls.DaysOfWeek)}</td>
+                  <td>
+                    <strong style="color:var(--gold-400);">${Utils.utcToLocal(cls.TimeUTC)}</strong>
+                    <div class="text-xs text-teal">${cls.TimeUTC} UTC</div>
+                  </td>
+                  <td class="text-sm">${cls.DurationMins} min</td>
+                  <td>
+                    <div style="display:flex;gap:6px;justify-content:flex-end;">
+                      <a href="classroom.html?room=${cls.MeetingRoomCode}&class=${cls.ClassID}&name=${encodeURIComponent(cls.ClassName)}"
+                         class="qa-btn qa-btn--teal qa-btn--sm">🎥 Join</a>
+                      <button class="qa-btn qa-btn--outline qa-btn--sm" onclick="openClassModal('${cls.ClassID}')">Details</button>
+                    </div>
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    function openClassModal(classId) {
+      const cls = mySchedule.find(c => c.ClassID === classId);
+      if (!cls) return;
+      document.getElementById('classModalTitle').textContent = '📚 ' + cls.ClassName;
+      document.getElementById('classModalBody').innerHTML = `
+        <div style="display:flex;flex-direction:column;gap:14px;">
+          <div style="background:rgba(13,76,76,0.3);border-radius:10px;padding:16px;">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+              <div><div class="text-xs text-teal" style="margin-bottom:3px;">SUBJECT</div><div style="color:var(--cream);">${Utils.sanitize(cls.Subject)}</div></div>
+              <div><div class="text-xs text-teal" style="margin-bottom:3px;">TEACHER</div><div style="color:var(--cream);">${Utils.sanitize(cls.TeacherName||'—')}</div></div>
+              <div><div class="text-xs text-teal" style="margin-bottom:3px;">DAYS</div><div style="color:var(--cream);">${Utils.daysDisplay(cls.DaysOfWeek)}</div></div>
+              <div><div class="text-xs text-teal" style="margin-bottom:3px;">TIME (LOCAL)</div><div style="color:var(--gold-400);font-family:var(--font-display);">${Utils.utcToLocal(cls.TimeUTC)}</div></div>
+              <div><div class="text-xs text-teal" style="margin-bottom:3px;">DURATION</div><div style="color:var(--cream);">${cls.DurationMins} minutes</div></div>
+              <div><div class="text-xs text-teal" style="margin-bottom:3px;">TIME (UTC)</div><div style="color:var(--teal-200);">${cls.TimeUTC}</div></div>
+            </div>
+          </div>
+          <div style="background:rgba(10,22,40,0.5);border-radius:10px;padding:14px;">
+            <div class="text-xs text-teal" style="margin-bottom:6px;">ROOM CODE</div>
+            <div style="font-family:monospace;font-size:1.2rem;color:var(--gold-400);letter-spacing:0.15em;">${cls.MeetingRoomCode}</div>
+          </div>
+          ${cls.BackupLink ? `
+            <div>
+              <div class="text-xs text-teal" style="margin-bottom:6px;">BACKUP MEETING LINK</div>
+              <a href="${cls.BackupLink}" target="_blank" class="qa-btn qa-btn--outline qa-btn--sm">Open Backup Link 🔗</a>
+            </div>
+          ` : ''}
+          <a href="classroom.html?room=${cls.MeetingRoomCode}&class=${cls.ClassID}&name=${encodeURIComponent(cls.ClassName)}${cls.BackupLink?'&backup='+encodeURIComponent(cls.BackupLink):''}"
+             class="qa-btn qa-btn--primary qa-btn--block qa-btn--lg">🎥 Join This Class</a>
+        </div>
+      `;
+      document.getElementById('classModal').style.display = 'flex';
+    }
+
+    document.getElementById('classModal').addEventListener('click', e => { if (e.target === e.currentTarget) e.currentTarget.style.display='none'; });
+    loadSchedule();
+  </script>
+</body>
+</html>

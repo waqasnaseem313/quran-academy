@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Dashboard — Quran Academy</title>
+  <link rel="stylesheet" href="../css/main.css" />
+</head>
+<body>
+  <div class="qa-bg-pattern"></div>
+  <div class="qa-shell">
+
+    <!-- Sidebar -->
+    <aside class="qa-sidebar" id="sidebar">
+      <div class="qa-sidebar__logo">
+        <span class="qa-logo-arabic">أكاديمية القرآن</span>
+        <h1>Quran Academy</h1>
+        <span class="qa-logo-sub">Student Portal</span>
+      </div>
+      <ul class="qa-nav">
+        <li class="qa-nav__section">My Learning</li>
+        <li class="qa-nav__item"><a href="dashboard.html" class="active"><span class="icon">🏠</span> Dashboard</a></li>
+        <li class="qa-nav__item"><a href="schedule.html"><span class="icon">📅</span> My Schedule</a></li>
+        <li class="qa-nav__item"><a href="attendance.html"><span class="icon">✅</span> Attendance</a></li>
+        <li class="qa-nav__item"><a href="progress.html"><span class="icon">📈</span> My Progress</a></li>
+        <li class="qa-nav__section">Classroom</li>
+        <li class="qa-nav__item"><a href="classroom.html"><span class="icon">🎥</span> Join Live Class</a></li>
+      </ul>
+      <div class="qa-sidebar__user" id="sidebarUser"></div>
+      <button class="qa-sidebar__logout" onclick="Auth.logout()">🚪 Sign Out</button>
+    </aside>
+
+    <!-- Main -->
+    <main class="qa-main">
+      <div class="qa-topbar">
+        <div style="display:flex;align-items:center;gap:14px;">
+          <button class="qa-hamburger" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</button>
+          <span class="qa-topbar__title">My Dashboard</span>
+        </div>
+        <div class="qa-topbar__right">
+          <div class="qa-prayer-badge" id="nextPrayer">🕌 —</div>
+        </div>
+      </div>
+
+      <div class="qa-page">
+
+        <!-- Greeting banner -->
+        <div class="qa-card" style="background:linear-gradient(135deg,var(--teal-700),var(--dark-2));margin-bottom:24px;position:relative;overflow:hidden;">
+          <div style="position:absolute;top:-20px;right:20px;font-size:5rem;opacity:0.08;">📖</div>
+          <div style="position:relative;z-index:1;">
+            <div style="font-family:var(--font-arabic);font-size:1.4rem;color:var(--gold-300);direction:rtl;margin-bottom:8px;">﷽</div>
+            <h2 id="greeting" style="font-family:var(--font-display);font-size:1.4rem;color:var(--cream);margin-bottom:6px;"></h2>
+            <p id="islamicGreeting" style="font-size:0.85rem;color:var(--teal-200);font-family:var(--font-ui);"></p>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:2fr 1fr;gap:24px;" class="main-grid">
+
+          <!-- Left column -->
+          <div>
+            <!-- Today's Classes -->
+            <div class="qa-card">
+              <div class="qa-card__title">📅 Today's Classes</div>
+              <div id="todayClasses">
+                <div class="qa-empty"><div class="qa-empty__icon">📅</div><div class="qa-empty__title">Loading schedule...</div></div>
+              </div>
+            </div>
+
+            <!-- Upcoming Week -->
+            <div class="qa-card">
+              <div class="qa-card__title">🗓️ My Weekly Schedule</div>
+              <div id="weeklySchedule">
+                <div class="qa-empty"><div class="qa-empty__icon">🗓️</div><div class="qa-empty__title">Loading...</div></div>
+              </div>
+              <a href="schedule.html" class="qa-btn qa-btn--outline qa-btn--sm" style="margin-top:12px;">Full Schedule →</a>
+            </div>
+
+            <!-- Announcements -->
+            <div class="qa-card">
+              <div class="qa-card__title">📢 Announcements</div>
+              <div id="announcements">
+                <div class="qa-empty"><div class="qa-empty__icon">📢</div><div class="qa-empty__title">Loading...</div></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right column -->
+          <div>
+            <!-- Attendance ring -->
+            <div class="qa-card" style="text-align:center;">
+              <div class="qa-card__title">✅ Attendance</div>
+              <div style="display:flex;justify-content:center;margin:16px 0;">
+                <div class="qa-attendance-ring" style="width:110px;height:110px;">
+                  <svg width="110" height="110" viewBox="0 0 110 110">
+                    <circle cx="55" cy="55" r="46" stroke="rgba(255,255,255,0.08)" stroke-width="10" fill="none"/>
+                    <circle id="attCircle" cx="55" cy="55" r="46" stroke="var(--gold-500)" stroke-width="10" fill="none"
+                      stroke-dasharray="289" stroke-dashoffset="289" stroke-linecap="round"
+                      style="transition:stroke-dashoffset 1s ease;"/>
+                  </svg>
+                  <div class="qa-attendance-ring__label">
+                    <div class="qa-attendance-ring__pct" id="attPct">—%</div>
+                    <div class="text-xs text-teal">Attended</div>
+                  </div>
+                </div>
+              </div>
+              <div style="display:flex;gap:12px;justify-content:center;font-size:0.78rem;font-family:var(--font-ui);">
+                <div><span id="attPresent">0</span> <span class="text-teal">Present</span></div>
+                <div><span id="attTotal">0</span> <span class="text-teal">Total</span></div>
+              </div>
+              <a href="attendance.html" class="qa-btn qa-btn--outline qa-btn--sm" style="margin-top:14px;display:inline-flex;">View History →</a>
+            </div>
+
+            <!-- Recent progress -->
+            <div class="qa-card">
+              <div class="qa-card__title">📈 Recent Progress</div>
+              <div id="recentProgress">
+                <div class="qa-empty"><div class="qa-empty__icon">📈</div><div class="qa-empty__title">Loading...</div></div>
+              </div>
+              <a href="progress.html" class="qa-btn qa-btn--outline qa-btn--sm" style="margin-top:12px;">Full Progress →</a>
+            </div>
+
+            <!-- Quick Quran -->
+            <div class="qa-card">
+              <div class="qa-card__title">📖 Daily Ayah</div>
+              <div id="dailyAyah">
+                <div class="qa-empty"><div class="qa-empty__icon">📖</div><div class="qa-empty__title">Loading...</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="../js/api.js"></script>
+  <script>
+    // Auth guard
+    Auth.requireAuth('student');
+
+    const user = Auth.getUser();
+    const studentId = Auth.getUserId();
+
+    document.getElementById('greeting').textContent = 'Assalamu Alaikum, ' + (user?.FullName || 'Student') + ' 🌙';
+    document.getElementById('islamicGreeting').textContent = Utils.islamicGreeting();
+
+    document.getElementById('sidebarUser').innerHTML = `
+      <div class="qa-avatar">${(user?.FullName||'S').split(' ').map(n=>n[0]).join('').slice(0,2)}</div>
+      <div><div class="name">${user?.FullName||'Student'}</div><div class="role">${user?.Level||'Student'}</div></div>
+    `;
+
+    const DAY_NAMES = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    const DAY_SHORT = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+    async function loadDashboard() {
+      const todayDayNum = new Date().getDay();
+
+      try {
+        const [schedRes, attRes, progRes, annRes] = await Promise.all([
+          API.getStudentSchedule(studentId),
+          API.getAttendance({ studentId }),
+          API.getProgress(studentId),
+          API.getAnnouncements('students')
+        ]);
+
+        // Today's classes
+        const schedule = schedRes.schedule || [];
+        const todayClasses = schedule.filter(cls => {
+          const days = Utils.parseDays(cls.DaysOfWeek);
+          return days.includes(todayDayNum);
+        });
+        renderTodayClasses(todayClasses);
+
+        // Weekly schedule
+        renderWeeklySchedule(schedule);
+
+        // Attendance
+        const att = attRes;
+        const pct = att.percentage || 0;
+        document.getElementById('attPct').textContent = pct + '%';
+        document.getElementById('attPresent').textContent = att.present || 0;
+        document.getElementById('attTotal').textContent = att.total || 0;
+        const circumference = 2 * Math.PI * 46;
+        const offset = circumference - (pct / 100) * circumference;
+        setTimeout(() => {
+          document.getElementById('attCircle').style.strokeDasharray = circumference;
+          document.getElementById('attCircle').style.strokeDashoffset = offset;
+          if (pct < 70) document.getElementById('attCircle').style.stroke = 'var(--red-lt)';
+          else if (pct < 85) document.getElementById('attCircle').style.stroke = 'var(--amber)';
+        }, 200);
+
+        // Progress
+        const progress = (progRes.progress || []).slice(0, 4);
+        renderRecentProgress(progress);
+
+        // Announcements
+        renderAnnouncements((annRes.announcements || []).slice(0, 3));
+
+      } catch (err) {
+        Utils.toast('Error: ' + err.message, 'error');
+      }
+    }
+
+    function renderTodayClasses(classes) {
+      const el = document.getElementById('todayClasses');
+      if (!classes.length) {
+        el.innerHTML = `<div class="qa-empty"><div class="qa-empty__icon">😌</div><div class="qa-empty__title">No classes today</div><div class="qa-empty__msg">Enjoy your day of rest or review your notes.</div></div>`;
+        return;
+      }
+      el.innerHTML = classes.map(cls => {
+        const timeUntil = Utils.timeUntilClass(cls.TimeUTC, cls.DaysOfWeek);
+        const isLive = timeUntil === 'Starting now!';
+        return `
+          <div class="qa-class-card">
+            <div class="qa-class-card__time">⏰ ${Utils.utcToLocal(cls.TimeUTC)} (${cls.DurationMins} min)</div>
+            <div class="qa-class-card__name">${Utils.sanitize(cls.ClassName)}</div>
+            <div class="qa-class-card__meta">📚 ${cls.Subject} · 👨‍🏫 ${cls.TeacherName || 'Teacher'}</div>
+            ${isLive || (timeUntil && parseInt(timeUntil) <= 10) ? `
+              <div class="qa-class-card__live">
+                <a href="classroom.html?room=${cls.MeetingRoomCode}&class=${cls.ClassID}" class="qa-live-pulse">JOIN NOW</a>
+              </div>
+            ` : timeUntil ? `<div class="qa-class-card__live"><span style="font-size:0.72rem;color:var(--teal-200);font-family:var(--font-ui);">${timeUntil}</span></div>` : ''}
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderWeeklySchedule(schedule) {
+      const el = document.getElementById('weeklySchedule');
+      if (!schedule.length) {
+        el.innerHTML = `<div class="qa-empty"><div class="qa-empty__icon">📅</div><div class="qa-empty__title">No classes enrolled</div><div class="qa-empty__msg">Contact admin to get enrolled in a class.</div></div>`;
+        return;
+      }
+
+      // Group by day
+      const byDay = {};
+      for (let d = 0; d < 7; d++) byDay[d] = [];
+      schedule.forEach(cls => {
+        const days = Utils.parseDays(cls.DaysOfWeek);
+        days.forEach(d => { if (byDay[d]) byDay[d].push(cls); });
+      });
+
+      const today = new Date().getDay();
+      el.innerHTML = Object.entries(byDay).filter(([,v]) => v.length).map(([dayNum, classes]) => `
+        <div style="margin-bottom:12px;">
+          <div style="font-family:var(--font-ui);font-size:0.72rem;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:${parseInt(dayNum)===today?'var(--gold-400)':'var(--teal-300)'};margin-bottom:6px;">
+            ${parseInt(dayNum)===today ? '● ' : ''}${DAY_NAMES[dayNum]}
+          </div>
+          ${classes.map(cls => `
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:rgba(13,76,76,0.3);border-radius:6px;border-left:2px solid var(--gold-500);margin-bottom:4px;">
+              <span style="font-size:0.85rem;font-family:var(--font-ui);">${Utils.sanitize(cls.ClassName)}</span>
+              <span style="font-size:0.75rem;color:var(--teal-200);">${Utils.utcToLocal(cls.TimeUTC)}</span>
+            </div>
+          `).join('')}
+        </div>
+      `).join('');
+    }
+
+    function renderRecentProgress(progress) {
+      const el = document.getElementById('recentProgress');
+      if (!progress.length) {
+        el.innerHTML = `<div class="qa-empty"><div class="qa-empty__icon">📈</div><div class="qa-empty__title">No progress recorded yet</div></div>`;
+        return;
+      }
+      el.innerHTML = progress.map(p => `
+        <div style="padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.05);">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+            <span style="font-size:0.85rem;font-family:var(--font-ui);color:var(--cream);">${Utils.sanitize(p.SurahName || 'Surah ' + p.SurahNumber)}</span>
+            ${p.Score ? `<span class="qa-badge qa-badge--active">${p.Score}%</span>` : ''}
+          </div>
+          <div style="font-size:0.72rem;color:var(--teal-200);">Ayah ${p.AyahFrom}–${p.AyahTo} · ${Utils.formatDate(p.Date)}</div>
+          ${p.Notes ? `<div style="font-size:0.75rem;color:var(--cream);opacity:0.7;margin-top:3px;font-style:italic;">"${Utils.truncate(p.Notes, 60)}"</div>` : ''}
+        </div>
+      `).join('');
+    }
+
+    function renderAnnouncements(anns) {
+      const el = document.getElementById('announcements');
+      if (!anns.length) {
+        el.innerHTML = `<div class="qa-empty"><div class="qa-empty__icon">📢</div><div class="qa-empty__title">No announcements</div></div>`;
+        return;
+      }
+      el.innerHTML = anns.map(a => `
+        <div class="qa-announcement">
+          <div class="qa-announcement__title">${Utils.sanitize(a.Title)}</div>
+          <div class="qa-announcement__body">${Utils.truncate(Utils.sanitize(a.Body), 120)}</div>
+          <div class="qa-announcement__meta">${Utils.formatDate(a.PostedAt)}</div>
+        </div>
+      `).join('');
+    }
+
+    async function loadDailyAyah() {
+      try {
+        // Random ayah from Al-Baqarah for demo
+        const surahNum = Math.floor(Math.random() * 10) + 1;
+        const surah = await API.getQuranSurah(surahNum);
+        const ayahs = surah.ayahs || [];
+        const ayah = ayahs[Math.floor(Math.random() * Math.min(ayahs.length, 20))];
+        if (ayah) {
+          document.getElementById('dailyAyah').innerHTML = `
+            <div class="qa-arabic qa-arabic--sm" style="margin-bottom:12px;">${ayah.text}</div>
+            <div style="font-size:0.72rem;color:var(--teal-200);font-family:var(--font-ui);">Surah ${surah.englishName} · Ayah ${ayah.numberInSurah}</div>
+          `;
+        }
+      } catch {
+        document.getElementById('dailyAyah').innerHTML = `<div class="qa-arabic qa-arabic--sm">وَمَن يَتَوَكَّلْ عَلَى اللَّهِ فَهُوَ حَسْبُهُ</div><div style="font-size:0.72rem;color:var(--teal-200);margin-top:8px;">And whoever relies upon Allah — then He is sufficient for him. (65:3)</div>`;
+      }
+    }
+
+    async function loadPrayerTimes() {
+      try {
+        const data = await API.getPrayerTimes('Lahore', 'Pakistan');
+        const now = new Date();
+        const prayers = [['Fajr', data.timings.Fajr], ['Dhuhr', data.timings.Dhuhr], ['Asr', data.timings.Asr], ['Maghrib', data.timings.Maghrib], ['Isha', data.timings.Isha]];
+        const next = prayers.find(([, t]) => { const [h, m] = t.split(':').map(Number); const pt = new Date(); pt.setHours(h, m); return pt > now; });
+        if (next) document.getElementById('nextPrayer').textContent = `🕌 ${next[0]}: ${next[1]}`;
+      } catch {}
+    }
+
+    document.querySelector('.qa-main').addEventListener('click', () => {
+      document.getElementById('sidebar').classList.remove('open');
+    });
+
+    loadDashboard();
+    loadDailyAyah();
+    loadPrayerTimes();
+  </script>
+
+  <style>
+    @media (max-width: 900px) { .main-grid { grid-template-columns: 1fr !important; } }
+  </style>
+</body>
+</html>

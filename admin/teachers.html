@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Teachers — Quran Academy Admin</title>
+  <link rel="stylesheet" href="../css/main.css" />
+  <style>
+    .qa-teacher-card {
+      background: linear-gradient(135deg, var(--teal-700), var(--teal-800));
+      border: 1px solid rgba(201,168,76,0.18);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      transition: all var(--transition);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .qa-teacher-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-gold); border-color: rgba(201,168,76,0.35); }
+    .qa-teacher-card__header { display: flex; align-items: center; gap: 14px; }
+    .qa-teacher-avatar {
+      width: 56px; height: 56px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--teal-500), var(--teal-600));
+      border: 2px solid var(--gold-500);
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--font-display);
+      font-size: 1.1rem;
+      color: var(--gold-300);
+      flex-shrink: 0;
+    }
+    .qa-teacher-card__name { font-family: var(--font-display); font-size: 1rem; color: var(--cream); margin-bottom: 2px; }
+    .qa-teacher-card__spec { font-family: var(--font-ui); font-size: 0.78rem; color: var(--gold-400); }
+    .qa-teacher-card__email { font-size: 0.75rem; color: var(--teal-200); }
+    .qa-spec-badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      background: rgba(201,168,76,0.1); border: 1px solid rgba(201,168,76,0.2);
+      border-radius: 20px; padding: 3px 10px;
+      font-family: var(--font-ui); font-size: 0.68rem; color: var(--gold-300);
+    }
+    .qa-teacher-card__stats { display: flex; gap: 16px; }
+    .qa-teacher-stat { text-align: center; flex: 1; }
+    .qa-teacher-stat__num { font-family: var(--font-display); font-size: 1.4rem; color: var(--gold-400); }
+    .qa-teacher-stat__lbl { font-size: 0.65rem; color: var(--teal-300); text-transform: uppercase; letter-spacing: 0.08em; font-family: var(--font-ui); }
+    .qa-teacher-card__actions { display: flex; gap: 8px; flex-wrap: wrap; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.06); }
+    .qa-spec-pill {
+      padding: 8px 16px;
+      border-radius: 20px;
+      border: 1px solid rgba(201,168,76,0.2);
+      background: transparent;
+      color: var(--teal-200);
+      font-family: var(--font-ui);
+      font-size: 0.78rem;
+      cursor: pointer;
+      transition: all var(--transition);
+    }
+    .qa-spec-pill:hover, .qa-spec-pill.selected {
+      background: rgba(201,168,76,0.12);
+      border-color: var(--gold-500);
+      color: var(--gold-300);
+    }
+  </style>
+</head>
+<body>
+  <div class="qa-bg-pattern"></div>
+  <div class="qa-shell">
+
+    <aside class="qa-sidebar" id="sidebar">
+      <div class="qa-sidebar__logo">
+        <span class="qa-logo-arabic">أكاديمية القرآن</span>
+        <h1>Quran Academy</h1>
+        <span class="qa-logo-sub">Admin Panel</span>
+      </div>
+      <ul class="qa-nav">
+        <li class="qa-nav__section">Main</li>
+        <li class="qa-nav__item"><a href="dashboard.html"><span class="icon">🏠</span> Dashboard</a></li>
+        <li class="qa-nav__item"><a href="students.html"><span class="icon">🎓</span> Students</a></li>
+        <li class="qa-nav__item"><a href="teachers.html" class="active"><span class="icon">👨‍🏫</span> Teachers</a></li>
+        <li class="qa-nav__section">Classes</li>
+        <li class="qa-nav__item"><a href="classes.html"><span class="icon">📚</span> Manage Classes</a></li>
+        <li class="qa-nav__item"><a href="schedule.html"><span class="icon">📅</span> Schedule</a></li>
+        <li class="qa-nav__item"><a href="attendance.html"><span class="icon">✅</span> Attendance</a></li>
+        <li class="qa-nav__section">Communication</li>
+        <li class="qa-nav__item"><a href="announcements.html"><span class="icon">📢</span> Announcements</a></li>
+      </ul>
+      <div class="qa-sidebar__user" id="sidebarUser"></div>
+      <button class="qa-sidebar__logout" onclick="Auth.logout()">🚪 Sign Out</button>
+    </aside>
+
+    <main class="qa-main">
+      <div class="qa-topbar">
+        <div style="display:flex;align-items:center;gap:14px;">
+          <button class="qa-hamburger" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</button>
+          <span class="qa-topbar__title">Teacher Management</span>
+        </div>
+        <div class="qa-topbar__right">
+          <button class="qa-btn qa-btn--primary qa-btn--sm" onclick="openAddModal()">+ Add Teacher</button>
+        </div>
+      </div>
+
+      <div class="qa-page">
+        <!-- Stats -->
+        <div class="qa-stats-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:24px;">
+          <div class="qa-stat"><div class="qa-stat__icon">👨‍🏫</div><div class="qa-stat__num" id="cntActive">—</div><div class="qa-stat__label">Active Teachers</div></div>
+          <div class="qa-stat"><div class="qa-stat__icon">📚</div><div class="qa-stat__num" id="cntClasses">—</div><div class="qa-stat__label">Classes Covered</div></div>
+          <div class="qa-stat"><div class="qa-stat__icon">🌍</div><div class="qa-stat__num" id="cntSpecializations">—</div><div class="qa-stat__label">Specializations</div></div>
+        </div>
+
+        <!-- Search -->
+        <div class="qa-search" style="margin-bottom:20px;">
+          <span class="qa-search__icon">🔍</span>
+          <input type="text" id="searchInput" placeholder="Search teachers by name, email, specialization..." oninput="renderTeachers()" />
+        </div>
+
+        <!-- Teacher cards grid -->
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px;" id="teacherGrid">
+          <div class="qa-empty" style="grid-column:1/-1;">
+            <div class="qa-empty__icon">👨‍🏫</div>
+            <div class="qa-empty__title">Loading teachers...</div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Add / Edit Teacher Modal -->
+  <div id="teacherModal" class="qa-modal-overlay" style="display:none;">
+    <div class="qa-modal" style="max-width:520px;">
+      <div class="qa-modal__title" id="teacherModalTitle">👨‍🏫 Add New Teacher</div>
+      <button class="qa-modal__close" onclick="closeModal()">✕</button>
+      <input type="hidden" id="editTeacherId" />
+
+      <div class="qa-form-grid">
+        <div class="qa-form-group">
+          <label class="qa-label">Full Name<span class="required">*</span></label>
+          <input type="text" id="tName" class="qa-input" placeholder="Teacher's full name" />
+        </div>
+        <div class="qa-form-group">
+          <label class="qa-label">Email Address<span class="required">*</span></label>
+          <input type="email" id="tEmail" class="qa-input" placeholder="teacher@email.com" />
+        </div>
+      </div>
+
+      <div class="qa-form-group">
+        <label class="qa-label">Temporary Password<span class="required">*</span></label>
+        <input type="text" id="tPassword" class="qa-input" placeholder="They can change it after first login" />
+        <div style="font-size:0.7rem;color:var(--teal-300);margin-top:4px;">Share this with the teacher via WhatsApp/email.</div>
+      </div>
+
+      <div class="qa-form-group">
+        <label class="qa-label">Specialization<span class="required">*</span></label>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;" id="specPills">
+          <button class="qa-spec-pill" onclick="selectSpec('Qaida',this)">📖 Qaida</button>
+          <button class="qa-spec-pill" onclick="selectSpec('Nazra',this)">📜 Nazra</button>
+          <button class="qa-spec-pill" onclick="selectSpec('Hifz',this)">🧠 Hifz</button>
+          <button class="qa-spec-pill" onclick="selectSpec('Tajweed',this)">🎵 Tajweed</button>
+          <button class="qa-spec-pill" onclick="selectSpec('Islamic Studies',this)">🕌 Islamic Studies</button>
+          <button class="qa-spec-pill" onclick="selectSpec('All Subjects',this)">⭐ All Subjects</button>
+        </div>
+        <input type="hidden" id="tSpecialization" />
+      </div>
+
+      <div class="qa-form-group">
+        <label class="qa-label">Short Bio (optional)</label>
+        <textarea id="tBio" class="qa-textarea" style="min-height:70px;" placeholder="e.g. Hafiz ul Quran with 10 years teaching experience..."></textarea>
+      </div>
+
+      <div id="teacherFormError" class="qa-error-msg mb-16" style="display:none;padding:10px;background:rgba(139,32,32,0.2);border-radius:6px;border:1px solid rgba(192,57,43,0.3);"></div>
+
+      <div style="display:flex;gap:10px;margin-top:20px;flex-wrap:wrap;">
+        <button class="qa-btn qa-btn--primary" id="saveTeacherBtn" onclick="saveTeacher()">💾 Save Teacher</button>
+        <button class="qa-btn qa-btn--outline" onclick="closeModal()">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Teacher detail modal -->
+  <div id="detailModal" class="qa-modal-overlay" style="display:none;">
+    <div class="qa-modal" style="max-width:500px;">
+      <div class="qa-modal__title">👨‍🏫 Teacher Details</div>
+      <button class="qa-modal__close" onclick="document.getElementById('detailModal').style.display='none'">✕</button>
+      <div id="detailContent"></div>
+    </div>
+  </div>
+
+  <script src="../js/api.js"></script>
+  <script>
+    Auth.requireAuth('admin');
+    const user = Auth.getUser();
+    document.getElementById('sidebarUser').innerHTML = `
+      <div class="qa-avatar">${(user?.FullName||'A').split(' ').map(n=>n[0]).join('').slice(0,2)}</div>
+      <div><div class="name">${user?.FullName||'Admin'}</div><div class="role">Administrator</div></div>
+    `;
+    document.querySelector('.qa-main').addEventListener('click', () => document.getElementById('sidebar').classList.remove('open'));
+
+    let allTeachers = [];
+    let allClasses  = [];
+    let selectedSpec = '';
+
+    async function loadData() {
+      try {
+        const [tchRes, clsRes] = await Promise.all([API.getTeachers(), API.getClasses({ status: 'Active' })]);
+        allTeachers = tchRes.teachers || [];
+        allClasses  = clsRes.classes  || [];
+        updateStats();
+        renderTeachers();
+      } catch (err) { Utils.toast('Load error: ' + err.message, 'error'); }
+    }
+
+    function updateStats() {
+      document.getElementById('cntActive').textContent = allTeachers.filter(t => t.Status === 'Active').length;
+      document.getElementById('cntClasses').textContent = allClasses.length;
+      const specs = new Set(allTeachers.map(t => t.Specialization).filter(Boolean));
+      document.getElementById('cntSpecializations').textContent = specs.size;
+    }
+
+    function renderTeachers() {
+      const q = (document.getElementById('searchInput').value || '').toLowerCase();
+      const filtered = allTeachers.filter(t =>
+        !q || (t.FullName||'').toLowerCase().includes(q) ||
+        (t.Email||'').toLowerCase().includes(q) ||
+        (t.Specialization||'').toLowerCase().includes(q)
+      );
+
+      const grid = document.getElementById('teacherGrid');
+      if (!filtered.length) {
+        grid.innerHTML = `<div class="qa-empty" style="grid-column:1/-1;">
+          <div class="qa-empty__icon">👨‍🏫</div>
+          <div class="qa-empty__title">No teachers yet</div>
+          <div class="qa-empty__msg">Add your first teacher to get started.</div>
+          <button class="qa-btn qa-btn--primary" style="margin-top:16px;" onclick="openAddModal()">+ Add First Teacher</button>
+        </div>`;
+        return;
+      }
+
+      grid.innerHTML = filtered.map(t => {
+        const initials = (t.FullName||'T').split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase();
+        const myClasses = allClasses.filter(c => c.TeacherID === t.ID);
+        return `
+          <div class="qa-teacher-card">
+            <div class="qa-teacher-card__header">
+              <div class="qa-teacher-avatar">${initials}</div>
+              <div>
+                <div class="qa-teacher-card__name">${Utils.sanitize(t.FullName)}</div>
+                <div class="qa-teacher-card__spec">${Utils.sanitize(t.Specialization||'General')}</div>
+                <div class="qa-teacher-card__email">${Utils.sanitize(t.Email)}</div>
+              </div>
+              <span class="qa-badge qa-badge--${t.Status==='Active'?'active':'rejected'}" style="margin-left:auto;">${t.Status}</span>
+            </div>
+
+            ${t.Bio ? `<div style="font-size:0.8rem;color:var(--teal-200);font-style:italic;">"${Utils.truncate(Utils.sanitize(t.Bio), 100)}"</div>` : ''}
+
+            <div class="qa-teacher-card__stats">
+              <div class="qa-teacher-stat">
+                <div class="qa-teacher-stat__num">${myClasses.length}</div>
+                <div class="qa-teacher-stat__lbl">Classes</div>
+              </div>
+              <div class="qa-teacher-stat">
+                <div class="qa-teacher-stat__num">${Utils.formatDate(t.JoinDate) || '—'}</div>
+                <div class="qa-teacher-stat__lbl">Joined</div>
+              </div>
+            </div>
+
+            ${myClasses.length ? `<div style="display:flex;flex-wrap:wrap;gap:6px;">
+              ${myClasses.slice(0,3).map(c => `<span class="qa-spec-badge">📚 ${Utils.sanitize(c.ClassName)}</span>`).join('')}
+              ${myClasses.length > 3 ? `<span class="qa-spec-badge">+${myClasses.length-3} more</span>` : ''}
+            </div>` : ''}
+
+            <div class="qa-teacher-card__actions">
+              <button class="qa-btn qa-btn--outline qa-btn--sm" onclick="openEditModal('${t.ID}')">✏ Edit</button>
+              <a href="mailto:${t.Email}" class="qa-btn qa-btn--teal qa-btn--sm">✉ Email</a>
+              <button class="qa-btn qa-btn--outline qa-btn--sm" onclick="openDetailModal('${t.ID}')">👁 View</button>
+              ${t.Status === 'Active' ?
+                `<button class="qa-btn qa-btn--danger qa-btn--sm" onclick="deactivateTeacher('${t.ID}')">Deactivate</button>` :
+                `<button class="qa-btn qa-btn--success qa-btn--sm" onclick="activateTeacher('${t.ID}')">Activate</button>`
+              }
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function selectSpec(spec, btn) {
+      selectedSpec = spec;
+      document.getElementById('tSpecialization').value = spec;
+      document.querySelectorAll('.qa-spec-pill').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+    }
+
+    function openAddModal() {
+      document.getElementById('editTeacherId').value = '';
+      document.getElementById('teacherModalTitle').textContent = '👨‍🏫 Add New Teacher';
+      document.getElementById('tName').value = '';
+      document.getElementById('tEmail').value = '';
+      document.getElementById('tPassword').value = 'teacher123';
+      document.getElementById('tBio').value = '';
+      document.getElementById('tSpecialization').value = '';
+      document.getElementById('teacherFormError').style.display = 'none';
+      selectedSpec = '';
+      document.querySelectorAll('.qa-spec-pill').forEach(b => b.classList.remove('selected'));
+      document.getElementById('teacherModal').style.display = 'flex';
+    }
+
+    function openEditModal(id) {
+      const t = allTeachers.find(x => x.ID === id);
+      if (!t) return;
+      document.getElementById('editTeacherId').value = id;
+      document.getElementById('teacherModalTitle').textContent = '✏ Edit Teacher';
+      document.getElementById('tName').value = t.FullName || '';
+      document.getElementById('tEmail').value = t.Email || '';
+      document.getElementById('tPassword').value = '';
+      document.getElementById('tBio').value = t.Bio || '';
+      document.getElementById('tSpecialization').value = t.Specialization || '';
+      document.getElementById('teacherFormError').style.display = 'none';
+      selectedSpec = t.Specialization || '';
+      document.querySelectorAll('.qa-spec-pill').forEach(b => {
+        b.classList.toggle('selected', b.textContent.trim().includes(selectedSpec));
+      });
+      document.getElementById('teacherModal').style.display = 'flex';
+    }
+
+    async function saveTeacher() {
+      const errEl = document.getElementById('teacherFormError');
+      errEl.style.display = 'none';
+      const name = document.getElementById('tName').value.trim();
+      const email = document.getElementById('tEmail').value.trim();
+      const password = document.getElementById('tPassword').value;
+      const spec = document.getElementById('tSpecialization').value;
+      const bio  = document.getElementById('tBio').value.trim();
+
+      const errors = [];
+      if (!name)  errors.push('Full name is required.');
+      if (!email || !Utils.isValidEmail(email)) errors.push('Valid email is required.');
+      if (!spec)  errors.push('Please select a specialization.');
+
+      if (errors.length) {
+        errEl.innerHTML = errors.join('<br>');
+        errEl.style.display = 'block';
+        return;
+      }
+
+      const btn = document.getElementById('saveTeacherBtn');
+      btn.disabled = true; btn.textContent = 'Saving...';
+
+      try {
+        await API.addTeacher({ fullName: name, email, password: password || 'teacher123', specialization: spec, bio });
+        Utils.toast('Teacher added! They can now log in.', 'success');
+        closeModal();
+        loadData();
+      } catch (err) {
+        errEl.textContent = err.message;
+        errEl.style.display = 'block';
+      } finally {
+        btn.disabled = false; btn.textContent = '💾 Save Teacher';
+      }
+    }
+
+    async function deactivateTeacher(id) {
+      if (!confirm('Deactivate this teacher?')) return;
+      Utils.toast('Feature: update teacher status in Apps Script.', 'info');
+    }
+
+    async function activateTeacher(id) {
+      Utils.toast('Feature: update teacher status in Apps Script.', 'info');
+    }
+
+    function openDetailModal(id) {
+      const t = allTeachers.find(x => x.ID === id);
+      if (!t) return;
+      const myClasses = allClasses.filter(c => c.TeacherID === t.ID);
+      document.getElementById('detailContent').innerHTML = `
+        <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid rgba(201,168,76,0.1);">
+          <div class="qa-teacher-avatar" style="width:60px;height:60px;font-size:1.2rem;">${(t.FullName||'T').split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase()}</div>
+          <div>
+            <div style="font-family:var(--font-display);font-size:1.1rem;color:var(--cream);margin-bottom:3px;">${Utils.sanitize(t.FullName)}</div>
+            <div style="font-size:0.78rem;color:var(--teal-200);">${Utils.sanitize(t.Email)}</div>
+            <div class="qa-spec-badge" style="margin-top:6px;">⭐ ${Utils.sanitize(t.Specialization||'General')}</div>
+          </div>
+        </div>
+        ${t.Bio ? `<div style="font-style:italic;color:var(--teal-200);font-size:0.85rem;margin-bottom:16px;padding:12px;background:rgba(13,76,76,0.2);border-radius:8px;">"${Utils.sanitize(t.Bio)}"</div>` : ''}
+        <div style="font-family:var(--font-ui);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--teal-300);margin-bottom:10px;">Assigned Classes</div>
+        ${myClasses.length ? myClasses.map(c => `
+          <div style="padding:10px 14px;background:rgba(13,76,76,0.3);border-radius:8px;margin-bottom:8px;border-left:2px solid var(--gold-500);">
+            <div style="font-family:var(--font-ui);font-size:0.88rem;color:var(--cream);">${Utils.sanitize(c.ClassName)}</div>
+            <div style="font-size:0.72rem;color:var(--teal-200);margin-top:2px;">${c.Subject} · ${Utils.daysDisplay(c.DaysOfWeek)} · ${Utils.utcToLocal(c.TimeUTC)}</div>
+          </div>
+        `).join('') : '<div style="color:var(--teal-300);font-size:0.85rem;">No classes assigned yet.</div>'}
+        <div style="display:flex;gap:8px;margin-top:16px;">
+          <a href="mailto:${t.Email}" class="qa-btn qa-btn--outline qa-btn--sm">✉ Email</a>
+          <button class="qa-btn qa-btn--teal qa-btn--sm" onclick="openEditModal('${t.ID}');document.getElementById('detailModal').style.display='none'">✏ Edit Profile</button>
+        </div>
+      `;
+      document.getElementById('detailModal').style.display = 'flex';
+    }
+
+    function closeModal() { document.getElementById('teacherModal').style.display = 'none'; }
+    document.querySelectorAll('.qa-modal-overlay').forEach(m => {
+      m.addEventListener('click', e => { if (e.target === m) m.style.display = 'none'; });
+    });
+
+    loadData();
+  </script>
+</body>
+</html>

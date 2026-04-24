@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Announcements — Quran Academy Admin</title>
+  <link rel="stylesheet" href="../css/main.css" />
+</head>
+<body>
+  <div class="qa-bg-pattern"></div>
+  <div class="qa-shell">
+
+    <aside class="qa-sidebar" id="sidebar">
+      <div class="qa-sidebar__logo">
+        <span class="qa-logo-arabic">أكاديمية القرآن</span>
+        <h1>Quran Academy</h1>
+        <span class="qa-logo-sub">Admin Panel</span>
+      </div>
+      <ul class="qa-nav">
+        <li class="qa-nav__section">Main</li>
+        <li class="qa-nav__item"><a href="dashboard.html"><span class="icon">🏠</span> Dashboard</a></li>
+        <li class="qa-nav__item"><a href="students.html"><span class="icon">🎓</span> Students</a></li>
+        <li class="qa-nav__item"><a href="teachers.html"><span class="icon">👨‍🏫</span> Teachers</a></li>
+        <li class="qa-nav__section">Classes</li>
+        <li class="qa-nav__item"><a href="classes.html"><span class="icon">📚</span> Manage Classes</a></li>
+        <li class="qa-nav__item"><a href="schedule.html"><span class="icon">📅</span> Schedule</a></li>
+        <li class="qa-nav__item"><a href="attendance.html"><span class="icon">✅</span> Attendance</a></li>
+        <li class="qa-nav__section">Communication</li>
+        <li class="qa-nav__item"><a href="announcements.html" class="active"><span class="icon">📢</span> Announcements</a></li>
+      </ul>
+      <div class="qa-sidebar__user" id="sidebarUser"></div>
+      <button class="qa-sidebar__logout" onclick="Auth.logout()">🚪 Sign Out</button>
+    </aside>
+
+    <main class="qa-main">
+      <div class="qa-topbar">
+        <div style="display:flex;align-items:center;gap:14px;">
+          <button class="qa-hamburger" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</button>
+          <span class="qa-topbar__title">Announcements</span>
+        </div>
+        <div class="qa-topbar__right">
+          <button class="qa-btn qa-btn--primary qa-btn--sm" onclick="openModal()">+ New Announcement</button>
+        </div>
+      </div>
+
+      <div class="qa-page">
+        <div style="display:grid;grid-template-columns:2fr 1fr;gap:24px;" class="ann-grid">
+
+          <!-- Announcements feed -->
+          <div>
+            <div style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;">
+              <button class="qa-filter-btn active" onclick="setFilter('all',this)">All</button>
+              <button class="qa-filter-btn" onclick="setFilter('students',this)">🎓 Students</button>
+              <button class="qa-filter-btn" onclick="setFilter('teachers',this)">👨‍🏫 Teachers</button>
+            </div>
+            <div id="annList">
+              <div class="qa-empty"><div class="qa-empty__icon">📢</div><div class="qa-empty__title">Loading...</div></div>
+            </div>
+          </div>
+
+          <!-- Compose panel -->
+          <div>
+            <div class="qa-card">
+              <div class="qa-card__title">📝 Quick Compose</div>
+              <div class="qa-form-group">
+                <label class="qa-label">Title<span class="required">*</span></label>
+                <input type="text" id="annTitle" class="qa-input" placeholder="Announcement title..." maxlength="100" />
+              </div>
+              <div class="qa-form-group">
+                <label class="qa-label">Message<span class="required">*</span></label>
+                <textarea id="annBody" class="qa-textarea" placeholder="Write your message here..." style="min-height:120px;" maxlength="1000"></textarea>
+              </div>
+              <div class="qa-form-group">
+                <label class="qa-label">Send To</label>
+                <div style="display:flex;flex-direction:column;gap:8px;margin-top:4px;">
+                  <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-family:var(--font-ui);font-size:0.85rem;">
+                    <input type="radio" name="audience" value="all" checked style="accent-color:var(--gold-500);" />
+                    🌍 Everyone (Students + Teachers)
+                  </label>
+                  <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-family:var(--font-ui);font-size:0.85rem;">
+                    <input type="radio" name="audience" value="students" style="accent-color:var(--gold-500);" />
+                    🎓 Students Only
+                  </label>
+                  <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-family:var(--font-ui);font-size:0.85rem;">
+                    <input type="radio" name="audience" value="teachers" style="accent-color:var(--gold-500);" />
+                    👨‍🏫 Teachers Only
+                  </label>
+                </div>
+              </div>
+              <div class="qa-form-group">
+                <label class="qa-label">Pin Until (optional)</label>
+                <input type="date" id="pinnedUntil" class="qa-input" />
+              </div>
+              <button class="qa-btn qa-btn--primary qa-btn--block" onclick="postAnnouncement()">📢 Post Announcement</button>
+            </div>
+
+            <!-- Tips card -->
+            <div class="qa-card">
+              <div class="qa-card__title">💡 Tips</div>
+              <div style="font-size:0.82rem;color:var(--teal-200);line-height:1.8;font-family:var(--font-ui);">
+                <div>📌 Pinned announcements appear first</div>
+                <div>🎓 Use "Students Only" for class updates</div>
+                <div>👨‍🏫 Use "Teachers Only" for staff notices</div>
+                <div>📅 Schedule holiday notices in advance</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="../js/api.js"></script>
+  <script>
+    Auth.requireAuth('admin');
+    const user = Auth.getUser();
+    document.getElementById('sidebarUser').innerHTML = `
+      <div class="qa-avatar">${(user?.FullName||'A').split(' ').map(n=>n[0]).join('').slice(0,2)}</div>
+      <div><div class="name">${user?.FullName||'Admin'}</div><div class="role">Administrator</div></div>
+    `;
+    document.querySelector('.qa-main').addEventListener('click', () => document.getElementById('sidebar').classList.remove('open'));
+
+    const AUDIENCE_ICONS = { all:'🌍', students:'🎓', teachers:'👨‍🏫' };
+    let allAnnouncements = [];
+    let currentFilter = 'all';
+
+    async function loadAnnouncements() {
+      try {
+        const res = await API.getAnnouncements('all');
+        allAnnouncements = res.announcements || [];
+        renderList();
+      } catch (err) { Utils.toast('Load error: ' + err.message, 'error'); }
+    }
+
+    function setFilter(filter, btn) {
+      currentFilter = filter;
+      document.querySelectorAll('.qa-filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      renderList();
+    }
+
+    function renderList() {
+      const filtered = allAnnouncements.filter(a =>
+        currentFilter === 'all' || a.TargetAudience === currentFilter
+      );
+      const el = document.getElementById('annList');
+
+      if (!filtered.length) {
+        el.innerHTML = `<div class="qa-empty"><div class="qa-empty__icon">📢</div><div class="qa-empty__title">No announcements</div><div class="qa-empty__msg">Post your first announcement using the compose panel.</div></div>`;
+        return;
+      }
+
+      // Sort: pinned first, then by date
+      const now = new Date();
+      const sorted = [...filtered].sort((a, b) => {
+        const aPinned = a.PinnedUntil && new Date(a.PinnedUntil) > now;
+        const bPinned = b.PinnedUntil && new Date(b.PinnedUntil) > now;
+        if (aPinned && !bPinned) return -1;
+        if (!aPinned && bPinned) return 1;
+        return new Date(b.PostedAt) - new Date(a.PostedAt);
+      });
+
+      el.innerHTML = sorted.map(a => {
+        const isPinned = a.PinnedUntil && new Date(a.PinnedUntil) > now;
+        return `
+          <div style="background:${isPinned?'rgba(201,168,76,0.07)':'linear-gradient(135deg,rgba(13,76,76,0.2),rgba(10,22,40,0.3))'};
+            border:1px solid rgba(201,168,76,${isPinned?'0.3':'0.12'});
+            border-radius:var(--radius-lg);padding:20px;margin-bottom:12px;transition:all var(--transition);"
+            onmouseenter="this.style.borderColor='rgba(201,168,76,0.3)'"
+            onmouseleave="this.style.borderColor='rgba(201,168,76,${isPinned?'0.3':'0.12'})'">
+            <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:10px;">
+              <div style="font-size:1.4rem;">${AUDIENCE_ICONS[a.TargetAudience]||'📢'}</div>
+              <div style="flex:1;">
+                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px;">
+                  <span style="font-family:var(--font-display);font-size:0.95rem;color:var(--cream);">${Utils.sanitize(a.Title)}</span>
+                  ${isPinned?'<span style="font-size:0.65rem;background:rgba(201,168,76,0.2);border:1px solid rgba(201,168,76,0.4);border-radius:20px;padding:2px 8px;color:var(--gold-400);font-family:var(--font-ui);font-weight:600;">📌 PINNED</span>':''}
+                  <span class="qa-badge qa-badge--pending" style="font-size:0.62rem;">${a.TargetAudience}</span>
+                </div>
+                <div style="font-size:0.85rem;color:var(--teal-200);line-height:1.6;">${Utils.sanitize(a.Body)}</div>
+              </div>
+            </div>
+            <div style="font-size:0.7rem;color:var(--teal-300);font-family:var(--font-ui);display:flex;gap:16px;flex-wrap:wrap;">
+              <span>👤 ${Utils.sanitize(a.PostedBy||'Admin')}</span>
+              <span>📅 ${Utils.formatDate(a.PostedAt)}</span>
+              ${isPinned?`<span>📌 Pinned until ${Utils.formatDate(a.PinnedUntil)}</span>`:''}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function postAnnouncement() {
+      const title    = document.getElementById('annTitle').value.trim();
+      const body     = document.getElementById('annBody').value.trim();
+      const audience = document.querySelector('input[name="audience"]:checked')?.value || 'all';
+      const pinned   = document.getElementById('pinnedUntil').value;
+
+      if (!title || !body) { Utils.toast('Title and message are required.', 'warning'); return; }
+
+      try {
+        await Utils.withLoader(() =>
+          API.createAnnouncement({ title, body, targetAudience: audience, pinnedUntil: pinned }),
+          'Posting announcement...'
+        );
+        Utils.toast('Announcement posted!', 'success');
+        document.getElementById('annTitle').value = '';
+        document.getElementById('annBody').value = '';
+        document.getElementById('pinnedUntil').value = '';
+        document.querySelector('input[name="audience"][value="all"]').checked = true;
+        loadAnnouncements();
+      } catch (err) { Utils.toast(err.message, 'error'); }
+    }
+
+    // ka-filter-btn style
+    document.head.insertAdjacentHTML('beforeend', `<style>
+      .qa-filter-btn { padding:7px 16px;border-radius:20px;border:1px solid rgba(201,168,76,0.2);background:transparent;color:var(--teal-200);font-family:var(--font-ui);font-size:0.78rem;cursor:pointer;transition:all 0.25s; }
+      .qa-filter-btn.active,.qa-filter-btn:hover { background:var(--teal-600);border-color:var(--teal-400);color:var(--gold-300); }
+      @media (max-width:768px) { .ann-grid { grid-template-columns:1fr !important; } }
+    </style>`);
+
+    loadAnnouncements();
+  </script>
+</body>
+</html>

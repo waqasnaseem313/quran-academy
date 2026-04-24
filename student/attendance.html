@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Attendance — Quran Academy</title>
+  <link rel="stylesheet" href="../css/main.css" />
+  <style>
+    .qa-heatmap-wrap {
+      overflow-x: auto;
+      padding-bottom: 8px;
+    }
+    .qa-heatmap-months {
+      display: flex;
+      gap: 14px;
+      flex-wrap: nowrap;
+      min-width: max-content;
+    }
+    .qa-heatmap-month { display: flex; flex-direction: column; gap: 4px; }
+    .qa-heatmap-month-label {
+      font-family: var(--font-ui);
+      font-size: 0.65rem;
+      color: var(--teal-300);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+    .qa-heatmap-month-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 12px);
+      grid-auto-rows: 12px;
+      gap: 3px;
+    }
+    .qa-hm-cell {
+      width: 12px; height: 12px;
+      border-radius: 2px;
+      background: rgba(255,255,255,0.06);
+      cursor: help;
+      transition: transform 0.15s;
+      position: relative;
+    }
+    .qa-hm-cell:hover { transform: scale(1.6); z-index: 10; }
+    .qa-hm-cell.present { background: var(--green); }
+    .qa-hm-cell.late    { background: var(--amber); }
+    .qa-hm-cell.absent  { background: rgba(139,32,32,0.6); }
+    .qa-hm-cell.future  { background: rgba(255,255,255,0.02); }
+
+    .qa-streak-card {
+      background: linear-gradient(135deg, rgba(45,122,79,0.2), rgba(10,22,40,0.5));
+      border: 1px solid rgba(45,122,79,0.3);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      text-align: center;
+    }
+    .qa-streak-card.broken {
+      background: linear-gradient(135deg, rgba(139,32,32,0.2), rgba(10,22,40,0.5));
+      border-color: rgba(139,32,32,0.3);
+    }
+    .qa-streak-num {
+      font-family: var(--font-display);
+      font-size: 2.8rem;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+  </style>
+</head>
+<body>
+  <div class="qa-bg-pattern"></div>
+  <div class="qa-shell">
+    <aside class="qa-sidebar" id="sidebar">
+      <div class="qa-sidebar__logo">
+        <span class="qa-logo-arabic">أكاديمية القرآن</span>
+        <h1>Quran Academy</h1>
+        <span class="qa-logo-sub">Student Portal</span>
+      </div>
+      <ul class="qa-nav">
+        <li class="qa-nav__section">My Learning</li>
+        <li class="qa-nav__item"><a href="dashboard.html"><span class="icon">🏠</span> Dashboard</a></li>
+        <li class="qa-nav__item"><a href="schedule.html"><span class="icon">📅</span> My Schedule</a></li>
+        <li class="qa-nav__item"><a href="attendance.html" class="active"><span class="icon">✅</span> Attendance</a></li>
+        <li class="qa-nav__item"><a href="progress.html"><span class="icon">📈</span> My Progress</a></li>
+        <li class="qa-nav__section">Classroom</li>
+        <li class="qa-nav__item"><a href="classroom.html"><span class="icon">🎥</span> Join Live Class</a></li>
+      </ul>
+      <div class="qa-sidebar__user" id="sidebarUser"></div>
+      <button class="qa-sidebar__logout" onclick="Auth.logout()">🚪 Sign Out</button>
+    </aside>
+
+    <main class="qa-main">
+      <div class="qa-topbar">
+        <div style="display:flex;align-items:center;gap:14px;">
+          <button class="qa-hamburger" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</button>
+          <span class="qa-topbar__title">My Attendance</span>
+        </div>
+      </div>
+
+      <div class="qa-page">
+
+        <!-- Top stats row -->
+        <div class="qa-stats-grid" style="margin-bottom:24px;">
+          <div class="qa-stat">
+            <div class="qa-stat__icon">📊</div>
+            <div class="qa-stat__num" id="statPct" style="color:var(--green);">—%</div>
+            <div class="qa-stat__label">Overall Attendance</div>
+          </div>
+          <div class="qa-stat">
+            <div class="qa-stat__icon">🟢</div>
+            <div class="qa-stat__num" id="statPresent">—</div>
+            <div class="qa-stat__label">Present</div>
+          </div>
+          <div class="qa-stat">
+            <div class="qa-stat__icon">🔴</div>
+            <div class="qa-stat__num" id="statAbsent">—</div>
+            <div class="qa-stat__label">Absent</div>
+          </div>
+          <div class="qa-stat">
+            <div class="qa-stat__icon">🟡</div>
+            <div class="qa-stat__num" id="statLate">—</div>
+            <div class="qa-stat__label">Late</div>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 280px;gap:24px;" class="att-grid">
+
+          <!-- Left: Heatmap + table -->
+          <div>
+            <!-- Heatmap -->
+            <div class="qa-card">
+              <div class="qa-card__title">📅 Attendance Calendar (Last 6 Months)</div>
+              <div style="display:flex;gap:10px;align-items:center;margin-bottom:16px;font-family:var(--font-ui);font-size:0.72rem;color:var(--teal-200);">
+                <span>Less</span>
+                <div style="display:flex;gap:3px;">
+                  <div style="width:12px;height:12px;border-radius:2px;background:rgba(255,255,255,0.06);"></div>
+                  <div style="width:12px;height:12px;border-radius:2px;background:rgba(139,32,32,0.6);"></div>
+                  <div style="width:12px;height:12px;border-radius:2px;background:var(--amber);"></div>
+                  <div style="width:12px;height:12px;border-radius:2px;background:var(--green);"></div>
+                </div>
+                <span>More / Better</span>
+                <span style="margin-left:8px;">■ No record &nbsp; ■ Absent &nbsp; ■ Late &nbsp; ■ Present</span>
+              </div>
+              <div class="qa-heatmap-wrap">
+                <div class="qa-heatmap-months" id="heatmap"></div>
+              </div>
+            </div>
+
+            <!-- Session log table -->
+            <div class="qa-card">
+              <div class="qa-card__title">📋 Session Log</div>
+              <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
+                <button class="qa-filter-btn active" onclick="setFilter('all',this)">All</button>
+                <button class="qa-filter-btn" onclick="setFilter('Present',this)">🟢 Present</button>
+                <button class="qa-filter-btn" onclick="setFilter('Absent',this)">🔴 Absent</button>
+                <button class="qa-filter-btn" onclick="setFilter('Late',this)">🟡 Late</button>
+              </div>
+              <div class="qa-table-wrap">
+                <table class="qa-table">
+                  <thead>
+                    <tr><th>Date</th><th>Class</th><th>Status</th></tr>
+                  </thead>
+                  <tbody id="attLogTbody">
+                    <tr><td colspan="3" style="text-align:center;padding:30px;color:var(--teal-300);">Loading...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <div style="margin-top:10px;font-size:0.75rem;color:var(--teal-300);font-family:var(--font-ui);" id="logFooter"></div>
+            </div>
+          </div>
+
+          <!-- Right: Ring + streaks -->
+          <div>
+            <!-- Big ring -->
+            <div class="qa-card" style="text-align:center;">
+              <div class="qa-card__title">Attendance Rate</div>
+              <div style="display:flex;justify-content:center;margin:20px 0;">
+                <div style="position:relative;width:140px;height:140px;">
+                  <svg width="140" height="140" viewBox="0 0 140 140" style="transform:rotate(-90deg);">
+                    <circle cx="70" cy="70" r="58" stroke="rgba(255,255,255,0.06)" stroke-width="14" fill="none"/>
+                    <circle id="bigRingCircle" cx="70" cy="70" r="58" stroke="var(--gold-500)" stroke-width="14" fill="none"
+                      stroke-dasharray="364" stroke-dashoffset="364" stroke-linecap="round"
+                      style="transition:stroke-dashoffset 1.2s cubic-bezier(0.4,0,0.2,1);"/>
+                  </svg>
+                  <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;">
+                    <div id="bigRingPct" style="font-family:var(--font-display);font-size:2rem;font-weight:700;color:var(--gold-400);">—%</div>
+                    <div style="font-size:0.65rem;color:var(--teal-200);font-family:var(--font-ui);letter-spacing:0.06em;text-transform:uppercase;">Attended</div>
+                  </div>
+                </div>
+              </div>
+              <div id="attMessage" style="font-family:var(--font-ui);font-size:0.82rem;padding:10px 14px;border-radius:8px;margin-top:4px;"></div>
+            </div>
+
+            <!-- Streak cards -->
+            <div class="qa-streak-card" id="streakCard" style="margin-top:0;">
+              <div class="qa-streak-num" id="streakNum" style="color:var(--green);">0</div>
+              <div style="font-family:var(--font-ui);font-size:0.78rem;color:var(--teal-200);">Day Attendance Streak</div>
+              <div style="font-size:0.72rem;color:var(--teal-300);margin-top:4px;" id="streakSub">Keep it going! 🌟</div>
+            </div>
+
+            <!-- Monthly breakdown -->
+            <div class="qa-card" style="margin-top:0;">
+              <div class="qa-card__title">📆 Monthly</div>
+              <div id="monthlyBreakdown">
+                <div class="qa-empty"><div class="qa-empty__icon">📆</div><div class="qa-empty__title">Loading...</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="../js/api.js"></script>
+  <script>
+    Auth.requireAuth('student');
+    const user = Auth.getUser();
+    const studentId = Auth.getUserId();
+
+    document.getElementById('sidebarUser').innerHTML = `
+      <div class="qa-avatar">${(user?.FullName||'S').split(' ').map(n=>n[0]).join('').slice(0,2)}</div>
+      <div><div class="name">${user?.FullName||'Student'}</div><div class="role">${user?.Level||'Student'}</div></div>
+    `;
+    document.querySelector('.qa-main').addEventListener('click', () => document.getElementById('sidebar').classList.remove('open'));
+
+    const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    let allRecords = [];
+    let currentFilter = 'all';
+
+    // Inject filter btn styles
+    document.head.insertAdjacentHTML('beforeend', `<style>
+      .qa-filter-btn{padding:6px 14px;border-radius:20px;border:1px solid rgba(201,168,76,0.2);background:transparent;color:var(--teal-200);font-family:var(--font-ui);font-size:0.75rem;cursor:pointer;transition:all 0.25s;}
+      .qa-filter-btn.active,.qa-filter-btn:hover{background:var(--teal-600);border-color:var(--teal-400);color:var(--gold-300);}
+      @media(max-width:900px){.att-grid{grid-template-columns:1fr!important;}}
+    </style>`);
+
+    async function loadAttendance() {
+      try {
+        const res = await API.getAttendance({ studentId });
+        allRecords = (res.attendance || []).sort((a,b) => b.SessionDate.localeCompare(a.SessionDate));
+        updateStats(res);
+        renderHeatmap();
+        renderLog();
+        renderMonthly();
+        renderStreak();
+      } catch (err) { Utils.toast('Error: ' + err.message, 'error'); }
+    }
+
+    function updateStats(res) {
+      const pct = res.percentage || 0;
+      const present = res.present || 0;
+      const total   = res.total || 0;
+      const absent  = allRecords.filter(r => r.Status === 'Absent').length;
+      const late    = allRecords.filter(r => r.Status === 'Late').length;
+
+      document.getElementById('statPct').textContent = pct + '%';
+      document.getElementById('statPct').style.color = pct >= 85 ? 'var(--green)' : pct >= 70 ? 'var(--amber)' : 'var(--red-lt)';
+      document.getElementById('statPresent').textContent = present;
+      document.getElementById('statAbsent').textContent  = absent;
+      document.getElementById('statLate').textContent    = late;
+
+      // Big ring
+      const circumference = 2 * Math.PI * 58;
+      const offset = circumference - (pct / 100) * circumference;
+      setTimeout(() => {
+        const circle = document.getElementById('bigRingCircle');
+        circle.style.strokeDasharray  = circumference;
+        circle.style.strokeDashoffset = offset;
+        circle.style.stroke = pct >= 85 ? 'var(--green)' : pct >= 70 ? 'var(--amber)' : 'var(--red-lt)';
+      }, 200);
+
+      document.getElementById('bigRingPct').textContent = pct + '%';
+      document.getElementById('bigRingPct').style.color = pct >= 85 ? 'var(--green)' : pct >= 70 ? 'var(--amber)' : 'var(--red-lt)';
+
+      const msgEl = document.getElementById('attMessage');
+      if (pct >= 90) {
+        msgEl.style.background = 'rgba(45,122,79,0.15)';
+        msgEl.style.color = 'var(--green-lt)';
+        msgEl.textContent = 'Excellent! MashaAllah, keep it up! 🌟';
+      } else if (pct >= 75) {
+        msgEl.style.background = 'rgba(192,122,32,0.12)';
+        msgEl.style.color = 'var(--amber)';
+        msgEl.textContent = 'Good progress. Try not to miss any sessions.';
+      } else if (pct > 0) {
+        msgEl.style.background = 'rgba(139,32,32,0.15)';
+        msgEl.style.color = 'var(--red-lt)';
+        msgEl.textContent = '⚠️ Below 70%. Please attend regularly — contact your teacher.';
+      }
+    }
+
+    function renderHeatmap() {
+      const container = document.getElementById('heatmap');
+      const today = new Date();
+      const dateMap = {};
+      allRecords.forEach(r => { dateMap[r.SessionDate] = r.Status; });
+
+      // Build last 6 months
+      const months = [];
+      for (let m = 5; m >= 0; m--) {
+        const d = new Date(today.getFullYear(), today.getMonth() - m, 1);
+        months.push(d);
+      }
+
+      container.innerHTML = months.map(monthStart => {
+        const year  = monthStart.getFullYear();
+        const month = monthStart.getMonth();
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        let cells = '';
+        for (let day = 1; day <= daysInMonth; day++) {
+          const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+          const isFuture = new Date(dateStr) > today;
+          const status = dateMap[dateStr];
+          const cls = isFuture ? 'future' : status ? status.toLowerCase() : '';
+          const title = dateStr + (status ? ' — ' + status : '');
+          cells += `<div class="qa-hm-cell ${cls}" title="${title}"></div>`;
+        }
+        return `<div class="qa-heatmap-month">
+          <div class="qa-heatmap-month-label">${MONTH_NAMES[month]}</div>
+          <div class="qa-heatmap-month-grid">${cells}</div>
+        </div>`;
+      }).join('');
+    }
+
+    function renderLog() {
+      const filtered = currentFilter === 'all' ? allRecords : allRecords.filter(r => r.Status === currentFilter);
+      const tbody = document.getElementById('attLogTbody');
+      document.getElementById('logFooter').textContent = filtered.length + ' records';
+
+      if (!filtered.length) {
+        tbody.innerHTML = `<tr><td colspan="3" style="text-align:center;padding:30px;color:var(--teal-300);">No records found.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = filtered.map(r => `
+        <tr>
+          <td style="font-family:var(--font-ui);font-size:0.85rem;">
+            <strong>${r.SessionDate || '—'}</strong>
+            <div class="text-xs text-teal">${new Date(r.SessionDate+'T00:00:00').toLocaleDateString('en-GB',{weekday:'long'})}</div>
+          </td>
+          <td style="font-size:0.82rem;">${Utils.sanitize(r.ClassID || '—')}</td>
+          <td><span class="qa-badge qa-badge--${(r.Status||'').toLowerCase()}">${r.Status || '—'}</span></td>
+        </tr>
+      `).join('');
+    }
+
+    function renderStreak() {
+      let streak = 0;
+      const today = new Date().toISOString().split('T')[0];
+      const sorted = [...allRecords].sort((a,b) => b.SessionDate.localeCompare(a.SessionDate));
+      for (const r of sorted) {
+        if (r.SessionDate > today) continue;
+        if (r.Status === 'Present' || r.Status === 'Late') streak++;
+        else break;
+      }
+
+      document.getElementById('streakNum').textContent = streak;
+      const card = document.getElementById('streakCard');
+      if (streak === 0) {
+        card.classList.add('broken');
+        document.getElementById('streakNum').style.color = 'var(--red-lt)';
+        document.getElementById('streakSub').textContent = 'No current streak. Start today! 💪';
+      } else if (streak >= 10) {
+        document.getElementById('streakSub').textContent = 'Amazing streak! MashaAllah! 🏆';
+      } else if (streak >= 5) {
+        document.getElementById('streakSub').textContent = 'Great streak! Keep going! 🌟';
+      } else {
+        document.getElementById('streakSub').textContent = 'Building your streak! 💪';
+      }
+    }
+
+    function renderMonthly() {
+      const el = document.getElementById('monthlyBreakdown');
+      const byMonth = {};
+      allRecords.forEach(r => {
+        const m = (r.SessionDate || '').slice(0, 7);
+        if (!m) return;
+        if (!byMonth[m]) byMonth[m] = { present:0, total:0 };
+        byMonth[m].total++;
+        if (r.Status === 'Present' || r.Status === 'Late') byMonth[m].present++;
+      });
+
+      const months = Object.keys(byMonth).sort().reverse().slice(0, 6);
+      if (!months.length) {
+        el.innerHTML = `<div class="qa-empty"><div class="qa-empty__icon">📆</div><div class="qa-empty__title">No data yet</div></div>`;
+        return;
+      }
+
+      el.innerHTML = months.map(m => {
+        const d = byMonth[m];
+        const pct = d.total ? Math.round((d.present/d.total)*100) : 0;
+        const color = pct >= 85 ? 'var(--green)' : pct >= 70 ? 'var(--amber)' : 'var(--red-lt)';
+        const [yr, mo] = m.split('-');
+        return `
+          <div style="margin-bottom:10px;">
+            <div style="display:flex;justify-content:space-between;font-family:var(--font-ui);font-size:0.78rem;margin-bottom:4px;">
+              <span style="color:var(--cream);">${MONTH_NAMES[parseInt(mo)-1]} ${yr}</span>
+              <span style="color:${color};font-weight:600;">${pct}%</span>
+            </div>
+            <div class="qa-mini-bar" style="height:8px;">
+              <div class="qa-mini-bar__fill" style="width:${pct}%;background:${color};height:8px;"></div>
+            </div>
+            <div style="font-size:0.68rem;color:var(--teal-300);margin-top:3px;">${d.present} / ${d.total} sessions</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function setFilter(f, btn) {
+      currentFilter = f;
+      document.querySelectorAll('.qa-filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      renderLog();
+    }
+
+    loadAttendance();
+  </script>
+</body>
+</html>

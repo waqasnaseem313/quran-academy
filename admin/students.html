@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Students — Quran Academy Admin</title>
+  <link rel="stylesheet" href="../css/main.css" />
+  <style>
+    .qa-filter-bar {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+      align-items: center;
+    }
+    .qa-filter-btn {
+      padding: 7px 16px;
+      border-radius: 20px;
+      border: 1px solid rgba(201,168,76,0.2);
+      background: transparent;
+      color: var(--teal-200);
+      font-family: var(--font-ui);
+      font-size: 0.78rem;
+      cursor: pointer;
+      transition: all var(--transition);
+    }
+    .qa-filter-btn.active, .qa-filter-btn:hover {
+      background: var(--teal-600);
+      border-color: var(--teal-400);
+      color: var(--gold-300);
+    }
+    .qa-student-row-detail {
+      display: none;
+      background: rgba(10,22,40,0.5);
+      padding: 20px 24px;
+      border-top: 1px solid rgba(201,168,76,0.08);
+    }
+    .qa-student-row-detail.open { display: block; }
+    .qa-detail-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 12px 20px;
+      margin-bottom: 16px;
+    }
+    .qa-detail-item label {
+      display: block;
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--teal-300);
+      font-family: var(--font-ui);
+      margin-bottom: 3px;
+    }
+    .qa-detail-item span {
+      font-size: 0.85rem;
+      color: var(--cream);
+      font-family: var(--font-ui);
+    }
+    .qa-bulk-bar {
+      display: none;
+      align-items: center;
+      gap: 12px;
+      background: rgba(201,168,76,0.08);
+      border: 1px solid rgba(201,168,76,0.2);
+      border-radius: var(--radius-md);
+      padding: 10px 16px;
+      margin-bottom: 16px;
+      font-family: var(--font-ui);
+      font-size: 0.85rem;
+      color: var(--cream);
+    }
+    .qa-bulk-bar.visible { display: flex; }
+    tr.selected td { background: rgba(201,168,76,0.04); }
+    .qa-export-btn { margin-left: auto; }
+  </style>
+</head>
+<body>
+  <div class="qa-bg-pattern"></div>
+  <div class="qa-shell">
+
+    <!-- Sidebar -->
+    <aside class="qa-sidebar" id="sidebar">
+      <div class="qa-sidebar__logo">
+        <span class="qa-logo-arabic">أكاديمية القرآن</span>
+        <h1>Quran Academy</h1>
+        <span class="qa-logo-sub">Admin Panel</span>
+      </div>
+      <ul class="qa-nav">
+        <li class="qa-nav__section">Main</li>
+        <li class="qa-nav__item"><a href="dashboard.html"><span class="icon">🏠</span> Dashboard</a></li>
+        <li class="qa-nav__item"><a href="students.html" class="active"><span class="icon">🎓</span> Students</a></li>
+        <li class="qa-nav__item"><a href="teachers.html"><span class="icon">👨‍🏫</span> Teachers</a></li>
+        <li class="qa-nav__section">Classes</li>
+        <li class="qa-nav__item"><a href="classes.html"><span class="icon">📚</span> Manage Classes</a></li>
+        <li class="qa-nav__item"><a href="schedule.html"><span class="icon">📅</span> Schedule</a></li>
+        <li class="qa-nav__item"><a href="attendance.html"><span class="icon">✅</span> Attendance</a></li>
+        <li class="qa-nav__section">Communication</li>
+        <li class="qa-nav__item"><a href="announcements.html"><span class="icon">📢</span> Announcements</a></li>
+      </ul>
+      <div class="qa-sidebar__user" id="sidebarUser"></div>
+      <button class="qa-sidebar__logout" onclick="Auth.logout()">🚪 Sign Out</button>
+    </aside>
+
+    <main class="qa-main">
+      <div class="qa-topbar">
+        <div style="display:flex;align-items:center;gap:14px;">
+          <button class="qa-hamburger" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</button>
+          <span class="qa-topbar__title">Student Management</span>
+        </div>
+        <div class="qa-topbar__right">
+          <button class="qa-btn qa-btn--primary qa-btn--sm" onclick="exportCSV()">⬇ Export CSV</button>
+        </div>
+      </div>
+
+      <div class="qa-page">
+
+        <!-- Stats row -->
+        <div class="qa-stats-grid" style="grid-template-columns:repeat(auto-fill,minmax(160px,1fr));margin-bottom:24px;">
+          <div class="qa-stat"><div class="qa-stat__icon">🎓</div><div class="qa-stat__num" id="cntActive">—</div><div class="qa-stat__label">Active</div></div>
+          <div class="qa-stat"><div class="qa-stat__icon">⏳</div><div class="qa-stat__num" id="cntPending">—</div><div class="qa-stat__label">Pending</div></div>
+          <div class="qa-stat"><div class="qa-stat__icon">✕</div><div class="qa-stat__num" id="cntRejected">—</div><div class="qa-stat__label">Rejected</div></div>
+          <div class="qa-stat"><div class="qa-stat__icon">🚫</div><div class="qa-stat__num" id="cntSuspended">—</div><div class="qa-stat__label">Suspended</div></div>
+        </div>
+
+        <div class="qa-card">
+          <!-- Filter bar -->
+          <div class="qa-filter-bar">
+            <div class="qa-search" style="flex:1;min-width:220px;margin-bottom:0;">
+              <span class="qa-search__icon">🔍</span>
+              <input type="text" id="searchInput" placeholder="Search by name, email, country..." oninput="filterStudents()" />
+            </div>
+            <button class="qa-filter-btn active" data-filter="all" onclick="setFilter('all',this)">All</button>
+            <button class="qa-filter-btn" data-filter="Pending" onclick="setFilter('Pending',this)">⏳ Pending</button>
+            <button class="qa-filter-btn" data-filter="Active" onclick="setFilter('Active',this)">✅ Active</button>
+            <button class="qa-filter-btn" data-filter="Rejected" onclick="setFilter('Rejected',this)">✕ Rejected</button>
+            <button class="qa-filter-btn" data-filter="Suspended" onclick="setFilter('Suspended',this)">🚫 Suspended</button>
+          </div>
+
+          <!-- Bulk action bar -->
+          <div class="qa-bulk-bar" id="bulkBar">
+            <span id="bulkCount">0 selected</span>
+            <button class="qa-btn qa-btn--success qa-btn--sm" onclick="bulkApprove()">✓ Approve All</button>
+            <button class="qa-btn qa-btn--danger qa-btn--sm" onclick="bulkReject()">✕ Reject All</button>
+            <button class="qa-btn qa-btn--outline qa-btn--sm" onclick="clearSelection()">Clear</button>
+          </div>
+
+          <!-- Table -->
+          <div class="qa-table-wrap">
+            <table class="qa-table" id="studentsTable">
+              <thead>
+                <tr>
+                  <th><input type="checkbox" id="selectAll" onchange="toggleSelectAll(this)" style="accent-color:var(--gold-500);" /></th>
+                  <th>Student</th>
+                  <th>Level</th>
+                  <th>Country</th>
+                  <th>WhatsApp</th>
+                  <th>Registered</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="studentsTbody">
+                <tr><td colspan="8" style="text-align:center;color:var(--teal-300);padding:40px;">Loading students...</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div style="margin-top:12px;font-family:var(--font-ui);font-size:0.78rem;color:var(--teal-300);" id="tableFooter"></div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Approve/Enroll Modal -->
+  <div id="approveModal" class="qa-modal-overlay" style="display:none;">
+    <div class="qa-modal" style="max-width:480px;">
+      <div class="qa-modal__title">✅ Approve Student</div>
+      <button class="qa-modal__close" onclick="closeModal('approveModal')">✕</button>
+      <input type="hidden" id="approveId" />
+
+      <div style="display:flex;align-items:center;gap:14px;margin-bottom:20px;padding:14px;background:rgba(13,76,76,0.3);border-radius:10px;">
+        <div class="qa-avatar" id="approveAvatar" style="width:48px;height:48px;font-size:1rem;"></div>
+        <div>
+          <div id="approveName" style="font-family:var(--font-ui);font-weight:600;color:var(--cream);margin-bottom:2px;"></div>
+          <div id="approveEmail" style="font-size:0.75rem;color:var(--teal-200);"></div>
+          <div id="approveLevel" style="font-size:0.72rem;color:var(--gold-400);margin-top:2px;"></div>
+        </div>
+      </div>
+
+      <div class="qa-form-group">
+        <label class="qa-label">Assign to Class Group</label>
+        <select id="approveClass" class="qa-select">
+          <option value="">— Assign class later —</option>
+        </select>
+        <div style="font-size:0.72rem;color:var(--teal-300);margin-top:5px;">Student will be automatically enrolled if a class is selected.</div>
+      </div>
+
+      <div class="qa-form-group">
+        <label class="qa-label">Note to Student (optional)</label>
+        <textarea id="approveNote" class="qa-textarea" style="min-height:70px;" placeholder="Welcome message or instructions..."></textarea>
+      </div>
+
+      <div style="display:flex;gap:10px;margin-top:20px;flex-wrap:wrap;">
+        <button class="qa-btn qa-btn--success" onclick="doApprove()">✓ Approve & Activate</button>
+        <button class="qa-btn qa-btn--danger" onclick="doReject()">✕ Reject Application</button>
+        <button class="qa-btn qa-btn--outline" onclick="closeModal('approveModal')">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- View Profile Modal -->
+  <div id="profileModal" class="qa-modal-overlay" style="display:none;">
+    <div class="qa-modal" style="max-width:540px;">
+      <div class="qa-modal__title">👤 Student Profile</div>
+      <button class="qa-modal__close" onclick="closeModal('profileModal')">✕</button>
+      <div id="profileContent"></div>
+    </div>
+  </div>
+
+  <!-- Enroll Modal (for active students) -->
+  <div id="enrollModal" class="qa-modal-overlay" style="display:none;">
+    <div class="qa-modal" style="max-width:420px;">
+      <div class="qa-modal__title">📚 Enroll in Class</div>
+      <button class="qa-modal__close" onclick="closeModal('enrollModal')">✕</button>
+      <input type="hidden" id="enrollStudentId" />
+      <p class="text-sm mb-16" style="color:var(--teal-200);">Enrolling: <strong id="enrollStudentName" style="color:var(--cream);"></strong></p>
+      <div class="qa-form-group">
+        <label class="qa-label">Select Class<span class="required">*</span></label>
+        <select id="enrollClassId" class="qa-select"><option value="">Loading classes...</option></select>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:20px;">
+        <button class="qa-btn qa-btn--primary" onclick="doEnroll()">Enroll Student</button>
+        <button class="qa-btn qa-btn--outline" onclick="closeModal('enrollModal')">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="../js/api.js"></script>
+  <script>
+    Auth.requireAuth('admin');
+    const user = Auth.getUser();
+    document.getElementById('sidebarUser').innerHTML = `
+      <div class="qa-avatar">${(user?.FullName||'A').split(' ').map(n=>n[0]).join('').slice(0,2)}</div>
+      <div><div class="name">${user?.FullName||'Admin'}</div><div class="role">Administrator</div></div>
+    `;
+    document.querySelector('.qa-main').addEventListener('click', () => document.getElementById('sidebar').classList.remove('open'));
+
+    let allStudents = [];
+    let allClasses  = [];
+    let currentFilter = 'all';
+    let selectedIds = new Set();
+
+    async function loadData() {
+      try {
+        const [stuRes, clsRes] = await Promise.all([
+          API.getAllStudents(),
+          API.getClasses({ status: 'Active' })
+        ]);
+        allStudents = stuRes.students || [];
+        allClasses  = clsRes.classes  || [];
+        updateStats();
+        renderTable();
+        populateClassDropdowns();
+      } catch (err) {
+        Utils.toast('Load error: ' + err.message, 'error');
+      }
+    }
+
+    function updateStats() {
+      document.getElementById('cntActive').textContent    = allStudents.filter(s => s.Status === 'Active').length;
+      document.getElementById('cntPending').textContent   = allStudents.filter(s => s.Status === 'Pending').length;
+      document.getElementById('cntRejected').textContent  = allStudents.filter(s => s.Status === 'Rejected').length;
+      document.getElementById('cntSuspended').textContent = allStudents.filter(s => s.Status === 'Suspended').length;
+    }
+
+    function getFiltered() {
+      const q = document.getElementById('searchInput').value.toLowerCase();
+      return allStudents.filter(s => {
+        const matchFilter = currentFilter === 'all' || s.Status === currentFilter;
+        const matchSearch = !q ||
+          (s.FullName||'').toLowerCase().includes(q) ||
+          (s.Email||'').toLowerCase().includes(q) ||
+          (s.Country||'').toLowerCase().includes(q) ||
+          (s.Level||'').toLowerCase().includes(q);
+        return matchFilter && matchSearch;
+      });
+    }
+
+    function renderTable() {
+      const filtered = getFiltered();
+      const tbody = document.getElementById('studentsTbody');
+      document.getElementById('tableFooter').textContent =
+        `Showing ${filtered.length} of ${allStudents.length} students`;
+
+      if (!filtered.length) {
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:var(--teal-300);padding:40px;">
+          <div style="font-size:2rem;margin-bottom:8px;">🔍</div>No students match your filter.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = filtered.map(s => {
+        const initials = (s.FullName||'?').split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase();
+        const isSelected = selectedIds.has(s.ID);
+        return `
+          <tr id="row-${s.ID}" class="${isSelected?'selected':''}" style="cursor:pointer;">
+            <td onclick="event.stopPropagation()">
+              <input type="checkbox" ${isSelected?'checked':''} style="accent-color:var(--gold-500);"
+                onchange="toggleSelect('${s.ID}', this.checked)" />
+            </td>
+            <td onclick="toggleDetail('${s.ID}')">
+              <div style="display:flex;align-items:center;gap:10px;">
+                <div class="qa-avatar" style="width:34px;height:34px;font-size:0.68rem;">${initials}</div>
+                <div>
+                  <div style="font-family:var(--font-ui);font-size:0.88rem;font-weight:500;color:var(--cream);">${Utils.sanitize(s.FullName||'—')}</div>
+                  <div style="font-size:0.72rem;color:var(--teal-300);">${Utils.sanitize(s.Email||'')}</div>
+                </div>
+              </div>
+            </td>
+            <td onclick="toggleDetail('${s.ID}')"><span class="qa-badge qa-badge--active" style="font-size:0.65rem;">${Utils.sanitize(s.Level||'—')}</span></td>
+            <td onclick="toggleDetail('${s.ID}')" style="font-size:0.85rem;">${Utils.sanitize(s.Country||'—')}</td>
+            <td onclick="toggleDetail('${s.ID}')" style="font-size:0.82rem;">${Utils.sanitize(s.WhatsApp||'—')}</td>
+            <td onclick="toggleDetail('${s.ID}')" style="font-size:0.78rem;color:var(--teal-200);">${Utils.formatDate(s.RegistrationDate)}</td>
+            <td onclick="toggleDetail('${s.ID}')"><span class="qa-badge qa-badge--${(s.Status||'pending').toLowerCase()}">${s.Status||'—'}</span></td>
+            <td onclick="event.stopPropagation()">
+              <div style="display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap;">
+                ${s.Status === 'Pending' ? `
+                  <button class="qa-btn qa-btn--success qa-btn--sm" onclick="openApproveModal('${s.ID}')">✓ Approve</button>
+                  <button class="qa-btn qa-btn--danger qa-btn--sm" onclick="quickReject('${s.ID}')">✕</button>
+                ` : ''}
+                ${s.Status === 'Active' ? `
+                  <button class="qa-btn qa-btn--teal qa-btn--sm" onclick="openEnrollModal('${s.ID}','${Utils.sanitize(s.FullName)}')">+ Enroll</button>
+                  <button class="qa-btn qa-btn--outline qa-btn--sm" onclick="openProfileModal('${s.ID}')">Profile</button>
+                  <button class="qa-btn qa-btn--danger qa-btn--sm" onclick="doSuspend('${s.ID}')">Suspend</button>
+                ` : ''}
+                ${s.Status === 'Suspended' ? `
+                  <button class="qa-btn qa-btn--success qa-btn--sm" onclick="doReactivate('${s.ID}')">Reactivate</button>
+                ` : ''}
+                ${s.Status === 'Rejected' ? `
+                  <button class="qa-btn qa-btn--outline qa-btn--sm" onclick="openApproveModal('${s.ID}')">Re-review</button>
+                ` : ''}
+              </div>
+            </td>
+          </tr>
+          <tr id="detail-${s.ID}">
+            <td colspan="8" style="padding:0;">
+              <div class="qa-student-row-detail" id="detailPanel-${s.ID}">
+                <div class="qa-detail-grid">
+                  <div class="qa-detail-item"><label>Age</label><span>${s.Age||'—'}</span></div>
+                  <div class="qa-detail-item"><label>Gender</label><span>${s.Gender||'—'}</span></div>
+                  <div class="qa-detail-item"><label>Preferred Time</label><span>${Utils.sanitize(s.PreferredTime||'—')}</span></div>
+                  <div class="qa-detail-item"><label>Class Group</label><span>${Utils.sanitize(s.ClassGroupID||'Not assigned')}</span></div>
+                  <div class="qa-detail-item"><label>Approved By</label><span>${Utils.sanitize(s.ApprovedBy||'—')}</span></div>
+                  <div class="qa-detail-item"><label>Approved On</label><span>${Utils.formatDate(s.ApprovedDate)}</span></div>
+                  <div class="qa-detail-item"><label>Student ID</label><span style="font-size:0.7rem;">${s.ID||'—'}</span></div>
+                </div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                  ${s.WhatsApp ? `<a href="https://wa.me/${(s.WhatsApp||'').replace(/\D/g,'')}" target="_blank" class="qa-btn qa-btn--success qa-btn--sm">💬 WhatsApp</a>` : ''}
+                  ${s.Email ? `<a href="mailto:${s.Email}" class="qa-btn qa-btn--outline qa-btn--sm">✉ Email</a>` : ''}
+                  <button class="qa-btn qa-btn--teal qa-btn--sm" onclick="viewAttendance('${s.ID}')">📊 Attendance</button>
+                  <button class="qa-btn qa-btn--teal qa-btn--sm" onclick="viewProgress('${s.ID}')">📈 Progress</button>
+                </div>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function toggleDetail(id) {
+      const panel = document.getElementById('detailPanel-' + id);
+      panel.classList.toggle('open');
+    }
+
+    function setFilter(filter, btn) {
+      currentFilter = filter;
+      document.querySelectorAll('.qa-filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      filterStudents();
+    }
+
+    function filterStudents() { renderTable(); }
+
+    // ── Selection ─────────────────────────────────────────
+    function toggleSelect(id, checked) {
+      checked ? selectedIds.add(id) : selectedIds.delete(id);
+      updateBulkBar();
+      const row = document.getElementById('row-' + id);
+      if (row) row.classList.toggle('selected', checked);
+    }
+
+    function toggleSelectAll(cb) {
+      const filtered = getFiltered();
+      filtered.forEach(s => { cb.checked ? selectedIds.add(s.ID) : selectedIds.delete(s.ID); });
+      updateBulkBar();
+      renderTable();
+    }
+
+    function updateBulkBar() {
+      const bar = document.getElementById('bulkBar');
+      bar.classList.toggle('visible', selectedIds.size > 0);
+      document.getElementById('bulkCount').textContent = selectedIds.size + ' selected';
+    }
+
+    function clearSelection() { selectedIds.clear(); updateBulkBar(); renderTable(); }
+
+    // ── Approve ────────────────────────────────────────────
+    function openApproveModal(id) {
+      const s = allStudents.find(x => x.ID === id);
+      if (!s) return;
+      document.getElementById('approveId').value = id;
+      document.getElementById('approveName').textContent  = s.FullName;
+      document.getElementById('approveEmail').textContent = s.Email;
+      document.getElementById('approveLevel').textContent = '📚 ' + (s.Level || 'Not specified');
+      document.getElementById('approveAvatar').textContent = (s.FullName||'?').split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase();
+      document.getElementById('approveNote').value = '';
+      document.getElementById('approveModal').style.display = 'flex';
+    }
+
+    async function doApprove() {
+      const id      = document.getElementById('approveId').value;
+      const classId = document.getElementById('approveClass').value;
+      try {
+        await Utils.withLoader(async () => {
+          await API.approveStudent(id, classId);
+          if (classId) await API.enrollStudent(id, classId);
+        }, 'Approving student...');
+        Utils.toast('Student approved and activated!', 'success');
+        closeModal('approveModal');
+        loadData();
+      } catch (err) { Utils.toast(err.message, 'error'); }
+    }
+
+    async function doReject() {
+      const id = document.getElementById('approveId').value;
+      if (!confirm('Reject this application?')) return;
+      try {
+        await Utils.withLoader(() => API.rejectStudent(id), 'Rejecting...');
+        Utils.toast('Application rejected.', 'warning');
+        closeModal('approveModal');
+        loadData();
+      } catch (err) { Utils.toast(err.message, 'error'); }
+    }
+
+    async function quickReject(id) {
+      if (!confirm('Reject this student application?')) return;
+      try {
+        await Utils.withLoader(() => API.rejectStudent(id), 'Processing...');
+        Utils.toast('Application rejected.', 'warning');
+        loadData();
+      } catch (err) { Utils.toast(err.message, 'error'); }
+    }
+
+    async function doSuspend(id) {
+      if (!confirm('Suspend this student? They will lose access.')) return;
+      try {
+        await Utils.withLoader(() => API.suspendStudent(id), 'Suspending...');
+        Utils.toast('Student suspended.', 'warning');
+        loadData();
+      } catch (err) { Utils.toast(err.message, 'error'); }
+    }
+
+    async function doReactivate(id) {
+      try {
+        await Utils.withLoader(() => API.approveStudent(id, ''), 'Reactivating...');
+        Utils.toast('Student reactivated!', 'success');
+        loadData();
+      } catch (err) { Utils.toast(err.message, 'error'); }
+    }
+
+    // ── Bulk actions ───────────────────────────────────────
+    async function bulkApprove() {
+      const ids = [...selectedIds];
+      if (!ids.length || !confirm(`Approve ${ids.length} students?`)) return;
+      try {
+        await Utils.withLoader(async () => {
+          for (const id of ids) await API.approveStudent(id, '');
+        }, 'Approving ' + ids.length + ' students...');
+        Utils.toast(ids.length + ' students approved!', 'success');
+        clearSelection();
+        loadData();
+      } catch (err) { Utils.toast(err.message, 'error'); }
+    }
+
+    async function bulkReject() {
+      const ids = [...selectedIds];
+      if (!ids.length || !confirm(`Reject ${ids.length} applications?`)) return;
+      try {
+        await Utils.withLoader(async () => {
+          for (const id of ids) await API.rejectStudent(id);
+        }, 'Processing...');
+        Utils.toast(ids.length + ' applications rejected.', 'warning');
+        clearSelection();
+        loadData();
+      } catch (err) { Utils.toast(err.message, 'error'); }
+    }
+
+    // ── Enroll ─────────────────────────────────────────────
+    function openEnrollModal(id, name) {
+      document.getElementById('enrollStudentId').value = id;
+      document.getElementById('enrollStudentName').textContent = name;
+      document.getElementById('enrollModal').style.display = 'flex';
+    }
+
+    async function doEnroll() {
+      const sid = document.getElementById('enrollStudentId').value;
+      const cid = document.getElementById('enrollClassId').value;
+      if (!cid) { Utils.toast('Please select a class.', 'warning'); return; }
+      try {
+        await Utils.withLoader(() => API.enrollStudent(sid, cid), 'Enrolling...');
+        Utils.toast('Student enrolled!', 'success');
+        closeModal('enrollModal');
+      } catch (err) { Utils.toast(err.message, 'error'); }
+    }
+
+    // ── Profile ────────────────────────────────────────────
+    async function openProfileModal(id) {
+      const s = allStudents.find(x => x.ID === id);
+      if (!s) return;
+      const [attRes, progRes] = await Promise.all([
+        API.getAttendance({ studentId: id }),
+        API.getProgress(id)
+      ]).catch(() => [{attendance:[], percentage:0}, {progress:[]}]);
+
+      document.getElementById('profileContent').innerHTML = `
+        <div style="display:flex;align-items:center;gap:16px;margin-bottom:24px;padding-bottom:20px;border-bottom:1px solid rgba(201,168,76,0.1);">
+          <div class="qa-avatar" style="width:60px;height:60px;font-size:1.3rem;">${(s.FullName||'?').split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase()}</div>
+          <div>
+            <div style="font-family:var(--font-display);font-size:1.15rem;color:var(--cream);margin-bottom:4px;">${Utils.sanitize(s.FullName)}</div>
+            <div style="font-size:0.8rem;color:var(--teal-200);">${Utils.sanitize(s.Email)}</div>
+            <div style="margin-top:6px;"><span class="qa-badge qa-badge--${(s.Status||'pending').toLowerCase()}">${s.Status}</span> <span class="qa-badge qa-badge--active" style="margin-left:6px;">${s.Level}</span></div>
+          </div>
+        </div>
+        <div class="qa-detail-grid" style="margin-bottom:20px;">
+          <div class="qa-detail-item"><label>Country</label><span>${Utils.sanitize(s.Country||'—')}</span></div>
+          <div class="qa-detail-item"><label>Age / Gender</label><span>${s.Age||'—'} / ${Utils.sanitize(s.Gender||'—')}</span></div>
+          <div class="qa-detail-item"><label>WhatsApp</label><span>${Utils.sanitize(s.WhatsApp||'—')}</span></div>
+          <div class="qa-detail-item"><label>Preferred Time</label><span>${Utils.sanitize(s.PreferredTime||'—')}</span></div>
+          <div class="qa-detail-item"><label>Registered</label><span>${Utils.formatDate(s.RegistrationDate)}</span></div>
+          <div class="qa-detail-item"><label>Approved By</label><span>${Utils.sanitize(s.ApprovedBy||'—')}</span></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;">
+          <div style="background:rgba(13,76,76,0.3);border-radius:10px;padding:16px;text-align:center;">
+            <div style="font-family:var(--font-display);font-size:2rem;color:var(--gold-400);">${attRes.percentage||0}%</div>
+            <div style="font-size:0.72rem;color:var(--teal-200);text-transform:uppercase;letter-spacing:0.08em;">Attendance</div>
+            <div style="font-size:0.75rem;color:var(--teal-300);margin-top:4px;">${attRes.present||0} / ${attRes.total||0} sessions</div>
+          </div>
+          <div style="background:rgba(13,76,76,0.3);border-radius:10px;padding:16px;text-align:center;">
+            <div style="font-family:var(--font-display);font-size:2rem;color:var(--gold-400);">${(progRes.progress||[]).length}</div>
+            <div style="font-size:0.72rem;color:var(--teal-200);text-transform:uppercase;letter-spacing:0.08em;">Progress Logs</div>
+            <div style="font-size:0.75rem;color:var(--teal-300);margin-top:4px;">Surah sessions recorded</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          ${s.WhatsApp ? `<a href="https://wa.me/${(s.WhatsApp||'').replace(/\D/g,'')}" target="_blank" class="qa-btn qa-btn--success qa-btn--sm">💬 WhatsApp</a>` : ''}
+          ${s.Email ? `<a href="mailto:${s.Email}" class="qa-btn qa-btn--outline qa-btn--sm">✉ Email</a>` : ''}
+        </div>
+      `;
+      document.getElementById('profileModal').style.display = 'flex';
+    }
+
+    function viewAttendance(id) { window.location.href = 'attendance.html?student=' + id; }
+    function viewProgress(id)   { window.location.href = '../student/progress.html?id=' + id; }
+
+    // ── Populate dropdowns ─────────────────────────────────
+    function populateClassDropdowns() {
+      [document.getElementById('approveClass'), document.getElementById('enrollClassId')].forEach(sel => {
+        const first = sel.options[0];
+        sel.innerHTML = '';
+        sel.appendChild(first);
+        allClasses.forEach(c => {
+          const opt = document.createElement('option');
+          opt.value = c.ClassID;
+          opt.textContent = c.ClassName + ' — ' + c.Subject + ' (' + Utils.daysDisplay(c.DaysOfWeek) + ' ' + Utils.utcToLocal(c.TimeUTC) + ')';
+          sel.appendChild(opt);
+        });
+      });
+    }
+
+    // ── Export CSV ─────────────────────────────────────────
+    function exportCSV() {
+      const filtered = getFiltered();
+      const headers = ['ID','FullName','Email','WhatsApp','Country','Age','Gender','Level','Status','PreferredTime','RegistrationDate','ApprovedBy','ApprovedDate'];
+      const rows = filtered.map(s => headers.map(h => `"${(s[h]||'').toString().replace(/"/g,'""')}"`).join(','));
+      const csv = [headers.join(','), ...rows].join('\n');
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'students_' + new Date().toISOString().split('T')[0] + '.csv';
+      a.click();
+      Utils.toast('CSV exported!', 'success');
+    }
+
+    function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+    document.querySelectorAll('.qa-modal-overlay').forEach(m => {
+      m.addEventListener('click', e => { if (e.target === m) m.style.display = 'none'; });
+    });
+
+    loadData();
+  </script>
+</body>
+</html>

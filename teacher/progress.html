@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Student Progress — Quran Academy Teacher</title>
+  <link rel="stylesheet" href="../css/main.css" />
+  <style>
+    .qa-prog-row {
+      display:flex; align-items:flex-start; gap:14px;
+      padding:14px 0; border-bottom:1px solid rgba(255,255,255,0.05);
+    }
+    .qa-prog-row:last-child { border-bottom:none; }
+    .qa-score-chip {
+      min-width:48px; height:48px;
+      border-radius:50%;
+      display:flex; align-items:center; justify-content:center;
+      font-family:var(--font-display); font-size:0.78rem; font-weight:700;
+      flex-shrink:0;
+    }
+    .qa-log-form { display:grid; grid-template-columns:1fr 1fr; gap:0 16px; }
+    @media(max-width:600px){ .qa-log-form { grid-template-columns:1fr; } }
+  </style>
+</head>
+<body>
+  <div class="qa-bg-pattern"></div>
+  <div class="qa-shell">
+
+    <aside class="qa-sidebar" id="sidebar">
+      <div class="qa-sidebar__logo">
+        <span class="qa-logo-arabic">أكاديمية القرآن</span>
+        <h1>Quran Academy</h1>
+        <span class="qa-logo-sub">Teacher Portal</span>
+      </div>
+      <ul class="qa-nav">
+        <li class="qa-nav__section">My Classes</li>
+        <li class="qa-nav__item"><a href="dashboard.html"><span class="icon">🏠</span> Dashboard</a></li>
+        <li class="qa-nav__item"><a href="my-classes.html"><span class="icon">📚</span> My Classes</a></li>
+        <li class="qa-nav__item"><a href="students.html"><span class="icon">🎓</span> My Students</a></li>
+        <li class="qa-nav__section">Teaching Tools</li>
+        <li class="qa-nav__item"><a href="../student/classroom.html"><span class="icon">🎥</span> Start Live Class</a></li>
+        <li class="qa-nav__item"><a href="progress.html" class="active"><span class="icon">📈</span> Student Progress</a></li>
+        <li class="qa-nav__item"><a href="attendance.html"><span class="icon">✅</span> Attendance</a></li>
+      </ul>
+      <div class="qa-sidebar__user" id="sidebarUser"></div>
+      <button class="qa-sidebar__logout" onclick="Auth.logout()">🚪 Sign Out</button>
+    </aside>
+
+    <main class="qa-main">
+      <div class="qa-topbar">
+        <div style="display:flex;align-items:center;gap:14px;">
+          <button class="qa-hamburger" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</button>
+          <span class="qa-topbar__title">Student Progress</span>
+        </div>
+      </div>
+
+      <div class="qa-page">
+        <div style="display:grid;grid-template-columns:1fr 1.4fr;gap:24px;" class="prog-main-grid">
+
+          <!-- Log new progress -->
+          <div>
+            <div class="qa-card">
+              <div class="qa-card__title">✍ Log New Progress</div>
+
+              <div class="qa-form-group">
+                <label class="qa-label">Student<span class="required">*</span></label>
+                <select id="logStudent" class="qa-select" onchange="onStudentChange()">
+                  <option value="">Select student...</option>
+                </select>
+              </div>
+
+              <div class="qa-form-group">
+                <label class="qa-label">Subject</label>
+                <select id="logSubject" class="qa-select">
+                  <option value="Quran">Quran Recitation</option>
+                  <option value="Hifz">Hifz (Memorization)</option>
+                  <option value="Tajweed">Tajweed Rules</option>
+                  <option value="Islamic Studies">Islamic Studies</option>
+                  <option value="Qaida">Qaida / Basics</option>
+                </select>
+              </div>
+
+              <div class="qa-form-group">
+                <label class="qa-label">Surah<span class="required">*</span></label>
+                <select id="logSurah" class="qa-select">
+                  <option value="">Select Surah...</option>
+                </select>
+              </div>
+
+              <div class="qa-log-form">
+                <div class="qa-form-group">
+                  <label class="qa-label">From Ayah</label>
+                  <input type="number" id="logFrom" class="qa-input" min="1" placeholder="1" />
+                </div>
+                <div class="qa-form-group">
+                  <label class="qa-label">To Ayah</label>
+                  <input type="number" id="logTo" class="qa-input" min="1" placeholder="7" />
+                </div>
+              </div>
+
+              <!-- Score slider -->
+              <div class="qa-form-group">
+                <label class="qa-label" style="display:flex;justify-content:space-between;">
+                  Score <span id="scoreDisplay" style="color:var(--gold-400);">—</span>
+                </label>
+                <input type="range" id="logScore" min="0" max="100" value="0"
+                  style="width:100%;accent-color:var(--gold-500);"
+                  oninput="updateScoreDisplay(this.value)" />
+                <div style="display:flex;justify-content:space-between;font-size:0.65rem;color:var(--teal-300);font-family:var(--font-ui);margin-top:4px;">
+                  <span>0% — Needs work</span><span>50%</span><span>100% — Excellent</span>
+                </div>
+              </div>
+
+              <div class="qa-form-group">
+                <label class="qa-label">Session Date</label>
+                <input type="date" id="logDate" class="qa-input" />
+              </div>
+
+              <div class="qa-form-group">
+                <label class="qa-label">Teacher Notes</label>
+                <textarea id="logNotes" class="qa-textarea" style="min-height:90px;"
+                  placeholder="Pronunciation good, work on elongation rules, MashaAllah on Al-Fatihah..."></textarea>
+              </div>
+
+              <button class="qa-btn qa-btn--primary qa-btn--block" onclick="saveProgress()">📝 Save Progress Log</button>
+            </div>
+          </div>
+
+          <!-- View progress -->
+          <div>
+            <div class="qa-card">
+              <div style="display:flex;align-items:center;gap:14px;margin-bottom:20px;flex-wrap:wrap;">
+                <div class="qa-card__title" style="margin-bottom:0;flex:1;">📈 Progress History</div>
+                <select id="viewStudent" class="qa-select" style="width:200px;" onchange="loadStudentProgress()">
+                  <option value="">All students</option>
+                </select>
+              </div>
+
+              <!-- Student summary bar -->
+              <div id="studentSummaryBar" style="display:none;background:rgba(13,76,76,0.3);border-radius:10px;padding:14px;margin-bottom:16px;display:grid;grid-template-columns:repeat(3,1fr);gap:12px;text-align:center;">
+                <div>
+                  <div style="font-family:var(--font-display);font-size:1.5rem;color:var(--gold-400);" id="sumSessions">—</div>
+                  <div style="font-size:0.65rem;color:var(--teal-300);text-transform:uppercase;letter-spacing:0.06em;font-family:var(--font-ui);">Sessions</div>
+                </div>
+                <div>
+                  <div style="font-family:var(--font-display);font-size:1.5rem;color:var(--gold-400);" id="sumAvgScore">—</div>
+                  <div style="font-size:0.65rem;color:var(--teal-300);text-transform:uppercase;letter-spacing:0.06em;font-family:var(--font-ui);">Avg Score</div>
+                </div>
+                <div>
+                  <div style="font-family:var(--font-display);font-size:1.5rem;color:var(--gold-400);" id="sumSurahs">—</div>
+                  <div style="font-size:0.65rem;color:var(--teal-300);text-transform:uppercase;letter-spacing:0.06em;font-family:var(--font-ui);">Surahs</div>
+                </div>
+              </div>
+
+              <div id="progressList">
+                <div class="qa-empty"><div class="qa-empty__icon">📈</div><div class="qa-empty__title">Select a student to view progress</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="../js/api.js"></script>
+  <script>
+    Auth.requireAuth('teacher');
+    const user      = Auth.getUser();
+    const teacherId = Auth.getUserId();
+
+    document.getElementById('sidebarUser').innerHTML = `
+      <div class="qa-avatar">${(user?.FullName||'T').split(' ').map(n=>n[0]).join('').slice(0,2)}</div>
+      <div><div class="name">${user?.FullName||'Teacher'}</div><div class="role">${user?.Specialization||'Teacher'}</div></div>
+    `;
+    document.querySelector('.qa-main').addEventListener('click', () => document.getElementById('sidebar').classList.remove('open'));
+
+    // Pre-fill today
+    document.getElementById('logDate').value = new Date().toISOString().split('T')[0];
+
+    const urlParams    = new URLSearchParams(location.search);
+    const preStudent   = urlParams.get('student');
+    let myStudents     = [];
+    let allSurahList   = [];
+
+    const SURAHS = [
+      [1,'Al-Fatihah',7],[2,'Al-Baqarah',286],[3,'Ali-Imran',200],[4,'An-Nisa',176],
+      [5,'Al-Maidah',120],[36,'Ya-Sin',83],[55,'Ar-Rahman',78],[67,'Al-Mulk',30],
+      [78,'An-Naba',40],[87,'Al-Ala',19],[93,'Ad-Dhuha',11],[94,'Ash-Sharh',8],
+      [96,'Al-Alaq',19],[99,'Az-Zalzalah',8],[108,'Al-Kawthar',3],
+      [109,'Al-Kafirun',6],[110,'An-Nasr',3],[112,'Al-Ikhlas',4],
+      [113,'Al-Falaq',5],[114,'An-Nas',6]
+    ];
+
+    function populateSurahSelects() {
+      ['logSurah'].forEach(id => {
+        const sel = document.getElementById(id);
+        sel.innerHTML = '<option value="">Select Surah...</option>';
+        SURAHS.forEach(([num,name,ayahs]) => {
+          const opt = document.createElement('option');
+          opt.value = `${num}|${name}|${ayahs}`;
+          opt.textContent = `${num}. ${name} (${ayahs} ayat)`;
+          sel.appendChild(opt);
+        });
+      });
+    }
+
+    function updateScoreDisplay(val) {
+      const v = parseInt(val);
+      const color = v >= 85 ? 'var(--green)' : v >= 70 ? 'var(--amber)' : v > 0 ? 'var(--red-lt)' : 'var(--teal-300)';
+      document.getElementById('scoreDisplay').textContent = v + '%';
+      document.getElementById('scoreDisplay').style.color = color;
+    }
+
+    async function loadMyStudents() {
+      try {
+        const [clsRes, stuRes] = await Promise.all([
+          API.getClasses({ teacherId }),
+          API.getAllStudents()
+        ]);
+        const myClasses = (clsRes.classes || []).filter(c => c.Status === 'Active');
+        const allStu    = (stuRes.students || []).filter(s => s.Status === 'Active');
+        const stuSet    = new Set();
+
+        for (const cls of myClasses) {
+          const res = await API.getEnrollments({ classId: cls.ClassID }).catch(() => ({ enrollments:[] }));
+          (res.enrollments || []).forEach(e => {
+            const s = allStu.find(x => x.ID === e.StudentID);
+            if (s && !stuSet.has(s.ID)) {
+              stuSet.add(s.ID);
+              myStudents.push({ id: s.ID, name: s.FullName, level: s.Level });
+            }
+          });
+        }
+
+        // Populate dropdowns
+        ['logStudent','viewStudent'].forEach(id => {
+          const sel = document.getElementById(id);
+          const first = id === 'viewStudent' ? '<option value="">All students</option>' : '<option value="">Select student...</option>';
+          sel.innerHTML = first;
+          myStudents.forEach(s => {
+            const opt = document.createElement('option');
+            opt.value = s.id;
+            opt.textContent = s.name + (s.level ? ' (' + s.level + ')' : '');
+            sel.appendChild(opt);
+          });
+        });
+
+        if (preStudent) {
+          document.getElementById('logStudent').value  = preStudent;
+          document.getElementById('viewStudent').value = preStudent;
+          loadStudentProgress();
+        } else if (myStudents.length) {
+          document.getElementById('viewStudent').value = myStudents[0].id;
+          loadStudentProgress();
+        }
+      } catch (err) { Utils.toast('Error: ' + err.message, 'error'); }
+    }
+
+    function onStudentChange() {
+      const id = document.getElementById('logStudent').value;
+      if (id) {
+        document.getElementById('viewStudent').value = id;
+        loadStudentProgress();
+      }
+    }
+
+    async function loadStudentProgress() {
+      const studentId = document.getElementById('viewStudent').value;
+      const el = document.getElementById('progressList');
+
+      if (!studentId) {
+        el.innerHTML = `<div class="qa-empty"><div class="qa-empty__icon">📈</div><div class="qa-empty__title">Select a student</div></div>`;
+        document.getElementById('studentSummaryBar').style.display = 'none';
+        return;
+      }
+
+      el.innerHTML = `<div class="qa-empty"><div class="qa-empty__icon">⏳</div><div class="qa-empty__title">Loading...</div></div>`;
+
+      try {
+        const res = await API.getProgress(studentId);
+        const records = [...(res.progress || [])].sort((a,b) => new Date(b.Date)-new Date(a.Date));
+
+        // Summary
+        const surahs = new Set(records.map(r => r.SurahNumber).filter(Boolean));
+        const scores  = records.map(r => parseInt(r.Score)).filter(n => !isNaN(n) && n > 0);
+        const avg     = scores.length ? Math.round(scores.reduce((a,b)=>a+b,0)/scores.length) : 0;
+
+        document.getElementById('sumSessions').textContent = records.length;
+        document.getElementById('sumAvgScore').textContent = avg ? avg + '%' : '—';
+        document.getElementById('sumSurahs').textContent   = surahs.size;
+        document.getElementById('studentSummaryBar').style.display = 'grid';
+
+        if (!records.length) {
+          el.innerHTML = `<div class="qa-empty"><div class="qa-empty__icon">📖</div><div class="qa-empty__title">No progress logged yet</div><div class="qa-empty__msg">Use the form on the left to log this student's first lesson.</div></div>`;
+          return;
+        }
+
+        el.innerHTML = records.map(p => {
+          const score = parseInt(p.Score) || 0;
+          const scoreColor = score >= 85 ? 'var(--green)' : score >= 70 ? 'var(--amber)' : score > 0 ? 'var(--red-lt)' : 'rgba(255,255,255,0.2)';
+          return `
+            <div class="qa-prog-row">
+              <div class="qa-score-chip" style="background:${score?scoreColor+'22':'rgba(255,255,255,0.04)'};border:2px solid ${scoreColor};">
+                <span style="color:${scoreColor};">${score||'—'}${score?'%':''}</span>
+              </div>
+              <div style="flex:1;">
+                <div style="font-family:var(--font-arabic);font-size:1rem;color:var(--cream);margin-bottom:3px;">${Utils.sanitize(p.SurahName||'Surah '+p.SurahNumber)}</div>
+                <div style="font-family:var(--font-ui);font-size:0.72rem;color:var(--teal-200);">
+                  Ayah ${p.AyahFrom||'?'}–${p.AyahTo||'?'} · ${Utils.sanitize(p.Subject||'Quran')} · ${Utils.formatDate(p.Date)}
+                </div>
+                ${p.Notes ? `<div style="font-size:0.75rem;color:var(--teal-200);margin-top:6px;padding:7px 10px;background:rgba(13,76,76,0.25);border-radius:6px;font-style:italic;">"${Utils.sanitize(p.Notes)}"</div>` : ''}
+              </div>
+            </div>
+          `;
+        }).join('');
+      } catch (err) {
+        el.innerHTML = `<div class="qa-empty"><div class="qa-empty__icon">⚠️</div><div class="qa-empty__title">Error loading progress</div></div>`;
+      }
+    }
+
+    async function saveProgress() {
+      const studentId = document.getElementById('logStudent').value;
+      const surahRaw  = document.getElementById('logSurah').value;
+      const score     = document.getElementById('logScore').value;
+      const from      = document.getElementById('logFrom').value;
+      const to        = document.getElementById('logTo').value;
+      const notes     = document.getElementById('logNotes').value.trim();
+      const subject   = document.getElementById('logSubject').value;
+      const date      = document.getElementById('logDate').value;
+
+      if (!studentId || !surahRaw) { Utils.toast('Select student and Surah.', 'warning'); return; }
+
+      const [surahNum, surahName] = surahRaw.split('|');
+      const student = myStudents.find(s => s.id === studentId);
+
+      try {
+        await Utils.withLoader(() => API.addProgress({
+          studentId, studentName: student?.name || '',
+          surahNumber: surahNum, surahName,
+          ayahFrom: from || '1', ayahTo: to || '1',
+          score: score > 0 ? score : '',
+          notes, subject,
+          date: date || new Date().toISOString().split('T')[0]
+        }), 'Saving progress...');
+
+        Utils.toast('Progress logged for ' + (student?.name || 'student') + '!', 'success');
+
+        // Reset form
+        document.getElementById('logStudent').value = '';
+        document.getElementById('logSurah').value   = '';
+        document.getElementById('logScore').value   = 0;
+        document.getElementById('logFrom').value    = '';
+        document.getElementById('logTo').value      = '';
+        document.getElementById('logNotes').value   = '';
+        document.getElementById('scoreDisplay').textContent = '—';
+
+        // Refresh view
+        document.getElementById('viewStudent').value = studentId;
+        await loadStudentProgress();
+      } catch (err) { Utils.toast(err.message, 'error'); }
+    }
+
+    populateSurahSelects();
+    loadMyStudents();
+  </script>
+  <style>
+    @media(max-width:900px){ .prog-main-grid { grid-template-columns:1fr !important; } }
+  </style>
+</body>
+</html>

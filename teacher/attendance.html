@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Attendance — Quran Academy Teacher</title>
+  <link rel="stylesheet" href="../css/main.css" />
+  <style>
+    .qa-att-student-row {
+      display: flex; align-items: center; gap: 14px;
+      padding: 14px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      transition: background var(--transition);
+    }
+    .qa-att-student-row:hover { background: rgba(201,168,76,0.02); }
+    .qa-att-btns { display: flex; gap: 6px; flex-shrink: 0; }
+    .qa-att-btn {
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      border: 2px solid transparent;
+      background: rgba(255,255,255,0.06);
+      cursor: pointer;
+      font-size: 0.9rem;
+      display: flex; align-items: center; justify-content: center;
+      transition: all var(--transition);
+    }
+    .qa-att-btn:hover { transform: scale(1.15); }
+    .qa-att-btn.present-active { background: rgba(45,122,79,0.35); border-color: var(--green); }
+    .qa-att-btn.absent-active  { background: rgba(139,32,32,0.35); border-color: var(--red-lt); }
+    .qa-att-btn.late-active    { background: rgba(192,122,32,0.35); border-color: var(--amber); }
+    .qa-save-bar {
+      position: sticky;
+      bottom: 0;
+      background: rgba(10,22,40,0.95);
+      backdrop-filter: blur(10px);
+      border-top: 1px solid rgba(201,168,76,0.15);
+      padding: 14px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      z-index: 50;
+    }
+    .qa-att-summary-pills {
+      display: flex; gap: 8px; flex-wrap: wrap;
+    }
+    .qa-att-pill {
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-family: var(--font-ui);
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <div class="qa-bg-pattern"></div>
+  <div class="qa-shell">
+
+    <aside class="qa-sidebar" id="sidebar">
+      <div class="qa-sidebar__logo">
+        <span class="qa-logo-arabic">أكاديمية القرآن</span>
+        <h1>Quran Academy</h1>
+        <span class="qa-logo-sub">Teacher Portal</span>
+      </div>
+      <ul class="qa-nav">
+        <li class="qa-nav__section">My Classes</li>
+        <li class="qa-nav__item"><a href="dashboard.html"><span class="icon">🏠</span> Dashboard</a></li>
+        <li class="qa-nav__item"><a href="my-classes.html"><span class="icon">📚</span> My Classes</a></li>
+        <li class="qa-nav__item"><a href="students.html"><span class="icon">🎓</span> My Students</a></li>
+        <li class="qa-nav__section">Teaching Tools</li>
+        <li class="qa-nav__item"><a href="../student/classroom.html"><span class="icon">🎥</span> Start Live Class</a></li>
+        <li class="qa-nav__item"><a href="progress.html"><span class="icon">📈</span> Student Progress</a></li>
+        <li class="qa-nav__item"><a href="attendance.html" class="active"><span class="icon">✅</span> Attendance</a></li>
+      </ul>
+      <div class="qa-sidebar__user" id="sidebarUser"></div>
+      <button class="qa-sidebar__logout" onclick="Auth.logout()">🚪 Sign Out</button>
+    </aside>
+
+    <main class="qa-main" style="display:flex;flex-direction:column;">
+      <div class="qa-topbar">
+        <div style="display:flex;align-items:center;gap:14px;">
+          <button class="qa-hamburger" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</button>
+          <span class="qa-topbar__title">Mark Attendance</span>
+        </div>
+      </div>
+
+      <div class="qa-page" style="flex:1;">
+
+        <!-- Session selector -->
+        <div class="qa-card" style="margin-bottom:24px;">
+          <div class="qa-card__title">📋 Select Session</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:14px;align-items:end;flex-wrap:wrap;" class="session-grid">
+            <div class="qa-form-group" style="margin-bottom:0;">
+              <label class="qa-label">Class<span class="required">*</span></label>
+              <select id="selClass" class="qa-select" onchange="onClassChange()">
+                <option value="">Select class...</option>
+              </select>
+            </div>
+            <div class="qa-form-group" style="margin-bottom:0;">
+              <label class="qa-label">Session Date<span class="required">*</span></label>
+              <input type="date" id="selDate" class="qa-input" value="" onchange="loadStudentsForSession()" />
+            </div>
+            <button class="qa-btn qa-btn--teal" onclick="loadStudentsForSession()">Load Roster →</button>
+          </div>
+        </div>
+
+        <!-- Attendance sheet -->
+        <div class="qa-card" id="attSheet" style="display:none;">
+          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:16px;">
+            <div class="qa-card__title" style="margin-bottom:0;" id="sheetTitle">Attendance Sheet</div>
+            <div style="display:flex;gap:8px;">
+              <button class="qa-btn qa-btn--success qa-btn--sm" onclick="markAll('Present')">✅ All Present</button>
+              <button class="qa-btn qa-btn--danger qa-btn--sm" onclick="markAll('Absent')">✕ All Absent</button>
+            </div>
+          </div>
+
+          <!-- Legend -->
+          <div style="display:flex;gap:16px;margin-bottom:16px;font-family:var(--font-ui);font-size:0.75rem;color:var(--teal-200);">
+            <span>✅ = Present</span><span>❌ = Absent</span><span>⏰ = Late</span>
+          </div>
+
+          <div id="studentAttRows"></div>
+        </div>
+
+        <!-- Past records -->
+        <div class="qa-card" id="pastSection" style="display:none;">
+          <div class="qa-card__title">📋 Past Attendance for This Class</div>
+          <div class="qa-table-wrap">
+            <table class="qa-table">
+              <thead><tr><th>Date</th><th>Student</th><th>Status</th><th>Marked At</th></tr></thead>
+              <tbody id="pastRecords">
+                <tr><td colspan="4" style="text-align:center;padding:20px;color:var(--teal-300);">Select a class to view history</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sticky save bar -->
+      <div class="qa-save-bar" id="saveBar" style="display:none;">
+        <div class="qa-att-summary-pills" id="summaryPills"></div>
+        <div style="display:flex;gap:10px;align-items:center;">
+          <span style="font-family:var(--font-ui);font-size:0.82rem;color:var(--teal-200);" id="saveStatus"></span>
+          <button class="qa-btn qa-btn--primary" onclick="saveAttendance()" id="saveBtn">💾 Save Attendance</button>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="../js/api.js"></script>
+  <script>
+    Auth.requireAuth('teacher');
+    const user      = Auth.getUser();
+    const teacherId = Auth.getUserId();
+
+    document.getElementById('sidebarUser').innerHTML = `
+      <div class="qa-avatar">${(user?.FullName||'T').split(' ').map(n=>n[0]).join('').slice(0,2)}</div>
+      <div><div class="name">${user?.FullName||'Teacher'}</div><div class="role">${user?.Specialization||'Teacher'}</div></div>
+    `;
+    document.querySelector('.qa-main').addEventListener('click', e => {
+      if (!e.target.closest('.qa-sidebar')) document.getElementById('sidebar').classList.remove('open');
+    });
+
+    // Pre-fill today's date
+    document.getElementById('selDate').value = new Date().toISOString().split('T')[0];
+
+    let myClasses   = [];
+    let currentStudents = []; // [{studentId, name}]
+    let attendanceMap   = {}; // studentId -> 'Present'|'Absent'|'Late'
+
+    // URL param for pre-selecting class
+    const urlParams = new URLSearchParams(location.search);
+    const preClass  = urlParams.get('class');
+
+    async function loadClasses() {
+      try {
+        const res = await API.getClasses({ teacherId });
+        myClasses = (res.classes || []).filter(c => c.Status === 'Active');
+        const sel = document.getElementById('selClass');
+        myClasses.forEach(c => {
+          const opt = document.createElement('option');
+          opt.value = c.ClassID;
+          opt.textContent = c.ClassName + ' (' + c.Subject + ')';
+          sel.appendChild(opt);
+        });
+        if (preClass) {
+          sel.value = preClass;
+          await onClassChange();
+        }
+      } catch (err) { Utils.toast('Error loading classes: ' + err.message, 'error'); }
+    }
+
+    async function onClassChange() {
+      const classId = document.getElementById('selClass').value;
+      if (!classId) return;
+      await loadStudentsForSession();
+      await loadPastRecords(classId);
+    }
+
+    async function loadStudentsForSession() {
+      const classId = document.getElementById('selClass').value;
+      const date    = document.getElementById('selDate').value;
+      if (!classId || !date) return;
+
+      try {
+        const [enrollRes, attRes] = await Promise.all([
+          API.getEnrollments({ classId }),
+          API.getAttendance({ classId })
+        ]);
+
+        const allStu = await API.getAllStudents();
+        const stuMap = {};
+        (allStu.students || []).forEach(s => { stuMap[s.ID] = s; });
+
+        currentStudents = (enrollRes.enrollments || [])
+          .filter(e => e.Status === 'Active')
+          .map(e => ({ studentId: e.StudentID, name: stuMap[e.StudentID]?.FullName || 'Unknown', level: stuMap[e.StudentID]?.Level || '' }));
+
+        // Pre-fill from existing records for this date
+        attendanceMap = {};
+        (attRes.attendance || [])
+          .filter(r => r.SessionDate === date)
+          .forEach(r => { attendanceMap[r.StudentID] = r.Status; });
+
+        // Default unset → Present
+        currentStudents.forEach(s => {
+          if (!attendanceMap[s.studentId]) attendanceMap[s.studentId] = 'Present';
+        });
+
+        renderSheet(classId, date);
+      } catch (err) { Utils.toast('Error: ' + err.message, 'error'); }
+    }
+
+    function renderSheet(classId, date) {
+      const cls    = myClasses.find(c => c.ClassID === classId);
+      const dateDisp = new Date(date + 'T00:00:00').toLocaleDateString('en-GB', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+
+      document.getElementById('sheetTitle').textContent = `${cls?.ClassName || ''} — ${dateDisp}`;
+      document.getElementById('attSheet').style.display = '';
+      document.getElementById('saveBar').style.display  = '';
+      document.getElementById('pastSection').style.display = '';
+
+      if (!currentStudents.length) {
+        document.getElementById('studentAttRows').innerHTML = `<div class="qa-empty"><div class="qa-empty__icon">👤</div><div class="qa-empty__title">No students enrolled in this class</div></div>`;
+        updateSummary();
+        return;
+      }
+
+      document.getElementById('studentAttRows').innerHTML = currentStudents.map((s, i) => {
+        const status = attendanceMap[s.studentId] || 'Present';
+        return `
+          <div class="qa-att-student-row" id="row-${s.studentId}">
+            <div style="font-family:var(--font-ui);font-size:0.82rem;color:var(--teal-300);width:24px;text-align:right;">${i+1}</div>
+            <div class="qa-avatar" style="width:36px;height:36px;font-size:0.7rem;">${s.name.split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase()}</div>
+            <div style="flex:1;">
+              <div style="font-family:var(--font-ui);font-size:0.9rem;color:var(--cream);">${Utils.sanitize(s.name)}</div>
+              <div style="font-size:0.7rem;color:var(--teal-300);">${Utils.sanitize(s.level)}</div>
+            </div>
+            <div style="font-family:var(--font-ui);font-size:0.78rem;color:var(--teal-200);min-width:60px;" id="statusLabel-${s.studentId}">
+              <span class="qa-badge qa-badge--${status.toLowerCase()}">${status}</span>
+            </div>
+            <div class="qa-att-btns">
+              <button class="qa-att-btn ${status==='Present'?'present-active':''}" id="btnP-${s.studentId}"
+                onclick="setStatus('${s.studentId}','Present')" title="Present">✅</button>
+              <button class="qa-att-btn ${status==='Absent'?'absent-active':''}" id="btnA-${s.studentId}"
+                onclick="setStatus('${s.studentId}','Absent')" title="Absent">❌</button>
+              <button class="qa-att-btn ${status==='Late'?'late-active':''}" id="btnL-${s.studentId}"
+                onclick="setStatus('${s.studentId}','Late')" title="Late">⏰</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      updateSummary();
+    }
+
+    function setStatus(studentId, status) {
+      attendanceMap[studentId] = status;
+      // Update buttons
+      ['P','A','L'].forEach(k => {
+        const btn = document.getElementById(`btn${k}-${studentId}`);
+        if (btn) btn.classList.remove('present-active','absent-active','late-active');
+      });
+      const map = { Present:'P', Absent:'A', Late:'L' };
+      const cls = { Present:'present-active', Absent:'absent-active', Late:'late-active' };
+      const btn = document.getElementById(`btn${map[status]}-${studentId}`);
+      if (btn) btn.classList.add(cls[status]);
+      // Update label
+      const label = document.getElementById(`statusLabel-${studentId}`);
+      if (label) label.innerHTML = `<span class="qa-badge qa-badge--${status.toLowerCase()}">${status}</span>`;
+      updateSummary();
+    }
+
+    function markAll(status) {
+      currentStudents.forEach(s => setStatus(s.studentId, status));
+    }
+
+    function updateSummary() {
+      const counts = { Present:0, Absent:0, Late:0 };
+      Object.values(attendanceMap).forEach(v => { if (counts[v] !== undefined) counts[v]++; });
+      const colors = { Present:'rgba(45,122,79,0.3)', Absent:'rgba(139,32,32,0.3)', Late:'rgba(192,122,32,0.3)' };
+      document.getElementById('summaryPills').innerHTML = Object.entries(counts).map(([k,v]) => `
+        <div class="qa-att-pill" style="background:${colors[k]};color:var(--cream);">${k}: ${v}</div>
+      `).join('');
+      document.getElementById('saveStatus').textContent = currentStudents.length + ' students';
+    }
+
+    async function saveAttendance() {
+      const classId = document.getElementById('selClass').value;
+      const date    = document.getElementById('selDate').value;
+      if (!classId || !date || !currentStudents.length) {
+        Utils.toast('Select class, date, and load roster first.', 'warning'); return;
+      }
+
+      const records = currentStudents.map(s => ({
+        studentId:   s.studentId,
+        studentName: s.name,
+        status:      attendanceMap[s.studentId] || 'Present'
+      }));
+
+      const btn = document.getElementById('saveBtn');
+      btn.disabled = true; btn.textContent = 'Saving...';
+
+      try {
+        await API.markAttendance(classId, date, records);
+        Utils.toast('Attendance saved! (' + records.length + ' students)', 'success');
+        await loadPastRecords(classId);
+      } catch (err) {
+        Utils.toast('Save error: ' + err.message, 'error');
+      } finally {
+        btn.disabled = false; btn.textContent = '💾 Save Attendance';
+      }
+    }
+
+    async function loadPastRecords(classId) {
+      try {
+        const res = await API.getClassAttendance(classId, null);
+        const records = [...(res.attendance || [])].sort((a,b) => b.SessionDate.localeCompare(a.SessionDate));
+        const tbody = document.getElementById('pastRecords');
+        if (!records.length) {
+          tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--teal-300);padding:20px;">No attendance records yet</td></tr>';
+          return;
+        }
+        tbody.innerHTML = records.slice(0, 100).map(r => `
+          <tr>
+            <td style="font-family:var(--font-ui);font-size:0.82rem;">${r.SessionDate||'—'}</td>
+            <td>${Utils.sanitize(r.StudentName||'—')}</td>
+            <td><span class="qa-badge qa-badge--${(r.Status||'').toLowerCase()}">${r.Status||'—'}</span></td>
+            <td style="font-size:0.72rem;color:var(--teal-300);">${r.MarkedAt ? new Date(r.MarkedAt).toLocaleTimeString() : '—'}</td>
+          </tr>
+        `).join('');
+      } catch {}
+    }
+
+    loadClasses();
+  </script>
+  <style>
+    @media (max-width: 600px) { .session-grid { grid-template-columns: 1fr !important; } }
+  </style>
+</body>
+</html>

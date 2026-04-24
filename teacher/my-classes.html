@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Classes — Quran Academy Teacher</title>
+  <link rel="stylesheet" href="../css/main.css" />
+  <style>
+    .qa-cls-tile {
+      background: linear-gradient(135deg, var(--teal-700), var(--teal-800));
+      border: 1px solid rgba(201,168,76,0.18);
+      border-radius: var(--radius-xl);
+      overflow: hidden;
+      transition: all var(--transition);
+    }
+    .qa-cls-tile:hover { box-shadow: var(--shadow-gold); border-color: rgba(201,168,76,0.35); }
+    .qa-cls-tile__header {
+      padding: 20px 22px 16px;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .qa-cls-tile__subj {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(201,168,76,0.1); border: 1px solid rgba(201,168,76,0.22);
+      border-radius: 20px; padding: 3px 12px;
+      font-family: var(--font-ui); font-size: 0.68rem;
+      font-weight: 600; color: var(--gold-300);
+      letter-spacing: 0.06em; margin-bottom: 10px;
+    }
+    .qa-cls-tile__name {
+      font-family: var(--font-display); font-size: 1.05rem;
+      color: var(--cream); margin-bottom: 6px;
+    }
+    .qa-cls-tile__meta {
+      font-family: var(--font-ui); font-size: 0.78rem;
+      color: var(--teal-200); margin-bottom: 3px;
+    }
+    .qa-cls-tile__room {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-top: 12px; padding-top: 12px;
+      border-top: 1px solid rgba(255,255,255,0.05);
+      font-family: monospace; font-size: 0.82rem;
+      color: var(--gold-400); letter-spacing: 0.1em;
+    }
+    .qa-cls-tile__body { padding: 16px 22px; }
+    .qa-cls-tile__footer {
+      padding: 14px 22px;
+      background: rgba(10,22,40,0.3);
+      display: flex; gap: 8px; flex-wrap: wrap;
+      align-items: center;
+    }
+    .qa-student-chip {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(13,76,76,0.5);
+      border: 1px solid rgba(201,168,76,0.12);
+      border-radius: 20px; padding: 4px 10px;
+      font-family: var(--font-ui); font-size: 0.72rem;
+      color: var(--teal-100);
+    }
+    .qa-student-chip .dot {
+      width: 6px; height: 6px;
+      border-radius: 50%; background: var(--green); flex-shrink: 0;
+    }
+    .qa-is-live-now {
+      background: rgba(45,122,79,0.15);
+      border: 1px solid rgba(45,122,79,0.35);
+      border-radius: var(--radius-md);
+      padding: 10px 14px;
+      margin-bottom: 10px;
+      font-family: var(--font-ui); font-size: 0.82rem;
+      display: flex; align-items: center; gap: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="qa-bg-pattern"></div>
+  <div class="qa-shell">
+
+    <aside class="qa-sidebar" id="sidebar">
+      <div class="qa-sidebar__logo">
+        <span class="qa-logo-arabic">أكاديمية القرآن</span>
+        <h1>Quran Academy</h1>
+        <span class="qa-logo-sub">Teacher Portal</span>
+      </div>
+      <ul class="qa-nav">
+        <li class="qa-nav__section">My Classes</li>
+        <li class="qa-nav__item"><a href="dashboard.html"><span class="icon">🏠</span> Dashboard</a></li>
+        <li class="qa-nav__item"><a href="my-classes.html" class="active"><span class="icon">📚</span> My Classes</a></li>
+        <li class="qa-nav__item"><a href="students.html"><span class="icon">🎓</span> My Students</a></li>
+        <li class="qa-nav__section">Teaching Tools</li>
+        <li class="qa-nav__item"><a href="../student/classroom.html"><span class="icon">🎥</span> Start Live Class</a></li>
+        <li class="qa-nav__item"><a href="progress.html"><span class="icon">📈</span> Student Progress</a></li>
+        <li class="qa-nav__item"><a href="attendance.html"><span class="icon">✅</span> Attendance</a></li>
+      </ul>
+      <div class="qa-sidebar__user" id="sidebarUser"></div>
+      <button class="qa-sidebar__logout" onclick="Auth.logout()">🚪 Sign Out</button>
+    </aside>
+
+    <main class="qa-main">
+      <div class="qa-topbar">
+        <div style="display:flex;align-items:center;gap:14px;">
+          <button class="qa-hamburger" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</button>
+          <span class="qa-topbar__title">My Classes</span>
+        </div>
+        <div class="qa-topbar__right">
+          <span style="font-family:var(--font-ui);font-size:0.78rem;color:var(--teal-200);" id="classCount"></span>
+        </div>
+      </div>
+
+      <div class="qa-page">
+        <!-- Today banner -->
+        <div id="todayBanner" style="display:none;" class="qa-card" style="margin-bottom:24px;background:linear-gradient(135deg,rgba(45,122,79,0.2),rgba(10,22,40,0.5));border-color:rgba(45,122,79,0.3);">
+          <div class="qa-card__title" style="color:var(--green-lt);">📅 Today's Classes</div>
+          <div id="todayBannerContent"></div>
+        </div>
+
+        <!-- Class grid -->
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:20px;" id="classGrid">
+          <div class="qa-empty" style="grid-column:1/-1;">
+            <div class="qa-empty__icon">📚</div>
+            <div class="qa-empty__title">Loading your classes...</div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Student roster modal -->
+  <div id="rosterModal" class="qa-modal-overlay" style="display:none;">
+    <div class="qa-modal" style="max-width:500px;">
+      <div class="qa-modal__title" id="rosterTitle">🎓 Class Roster</div>
+      <button class="qa-modal__close" onclick="document.getElementById('rosterModal').style.display='none'">✕</button>
+      <div id="rosterContent"></div>
+    </div>
+  </div>
+
+  <script src="../js/api.js"></script>
+  <script>
+    Auth.requireAuth('teacher');
+    const user      = Auth.getUser();
+    const teacherId = Auth.getUserId();
+    const todayDay  = new Date().getDay();
+    const SUBJ_ICONS = { Qaida:'📖', Nazra:'📜', Hifz:'🧠', Tajweed:'🎵', 'Islamic Studies':'🕌' };
+
+    document.getElementById('sidebarUser').innerHTML = `
+      <div class="qa-avatar">${(user?.FullName||'T').split(' ').map(n=>n[0]).join('').slice(0,2)}</div>
+      <div><div class="name">${user?.FullName||'Teacher'}</div><div class="role">${user?.Specialization||'Teacher'}</div></div>
+    `;
+    document.querySelector('.qa-main').addEventListener('click', () => document.getElementById('sidebar').classList.remove('open'));
+
+    let myClasses   = [];
+    let enrollments = {};   // classId -> [{studentId, studentName}]
+    let allStudents = [];
+
+    async function loadData() {
+      try {
+        const [clsRes, stuRes] = await Promise.all([
+          API.getClasses({ teacherId }),
+          API.getAllStudents()
+        ]);
+        myClasses   = (clsRes.classes || []).filter(c => c.Status === 'Active');
+        allStudents = (stuRes.students || []).filter(s => s.Status === 'Active');
+        document.getElementById('classCount').textContent = myClasses.length + ' active class' + (myClasses.length !== 1 ? 'es' : '');
+
+        // Load enrollments for each class
+        await Promise.all(myClasses.map(async cls => {
+          try {
+            const res = await API.getEnrollments({ classId: cls.ClassID });
+            const enrolments = (res.enrollments || []).filter(e => e.Status === 'Active');
+            enrollments[cls.ClassID] = enrolments.map(e => {
+              const s = allStudents.find(x => x.ID === e.StudentID);
+              return { studentId: e.StudentID, name: s ? s.FullName : 'Student', level: s?.Level || '' };
+            });
+          } catch { enrollments[cls.ClassID] = []; }
+        }));
+
+        renderGrid();
+        renderTodayBanner();
+      } catch (err) { Utils.toast('Error: ' + err.message, 'error'); }
+    }
+
+    function renderGrid() {
+      const grid = document.getElementById('classGrid');
+      if (!myClasses.length) {
+        grid.innerHTML = `<div class="qa-empty" style="grid-column:1/-1;">
+          <div class="qa-empty__icon">📚</div>
+          <div class="qa-empty__title">No classes assigned</div>
+          <div class="qa-empty__msg">Contact admin to get assigned to a class.</div>
+        </div>`;
+        return;
+      }
+
+      grid.innerHTML = myClasses.map(cls => {
+        const days       = Utils.parseDays(cls.DaysOfWeek);
+        const isToday    = days.includes(todayDay);
+        const timeStr    = Utils.utcToLocal(cls.TimeUTC);
+        const timeUntil  = isToday ? Utils.timeUntilClass(cls.TimeUTC, cls.DaysOfWeek) : null;
+        const isLive     = timeUntil === 'Starting now!' || (timeUntil && parseInt(timeUntil) <= 15);
+        const stuList    = enrollments[cls.ClassID] || [];
+        const stuPreview = stuList.slice(0, 4);
+        const icon       = SUBJ_ICONS[cls.Subject] || '📚';
+
+        return `
+          <div class="qa-cls-tile">
+            <div class="qa-cls-tile__header">
+              <div class="qa-cls-tile__subj">${icon} ${Utils.sanitize(cls.Subject)}</div>
+              <div class="qa-cls-tile__name">${Utils.sanitize(cls.ClassName)}</div>
+              <div class="qa-cls-tile__meta">📅 ${Utils.daysDisplay(cls.DaysOfWeek)}</div>
+              <div class="qa-cls-tile__meta">⏰ ${timeStr} · ${cls.DurationMins} min</div>
+              <div class="qa-cls-tile__meta">👥 ${stuList.length} / ${cls.MaxStudents} students</div>
+              <div class="qa-cls-tile__room">
+                <span>🔑 ${cls.MeetingRoomCode}</span>
+                <button onclick="copyCode('${cls.MeetingRoomCode}')" style="background:none;border:none;color:var(--teal-300);cursor:pointer;font-size:0.75rem;font-family:var(--font-ui);">Copy 📋</button>
+              </div>
+            </div>
+
+            <div class="qa-cls-tile__body">
+              ${isLive ? `<div class="qa-is-live-now"><span class="qa-live-pulse">LIVE</span><span style="color:var(--green-lt);">Class starting ${timeUntil === 'Starting now!' ? 'NOW' : 'soon — ' + timeUntil}</span></div>` : ''}
+              ${stuPreview.length ? `
+                <div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--teal-300);font-family:var(--font-ui);margin-bottom:8px;">Students (${stuList.length})</div>
+                <div style="display:flex;flex-wrap:wrap;gap:6px;">
+                  ${stuPreview.map(s => `
+                    <div class="qa-student-chip">
+                      <div class="dot"></div>
+                      ${Utils.sanitize(s.name.split(' ')[0])}
+                    </div>
+                  `).join('')}
+                  ${stuList.length > 4 ? `<div class="qa-student-chip">+${stuList.length - 4} more</div>` : ''}
+                </div>
+              ` : `<div style="font-size:0.8rem;color:var(--teal-300);font-family:var(--font-ui);">No students enrolled yet.</div>`}
+            </div>
+
+            <div class="qa-cls-tile__footer">
+              <a href="../student/classroom.html?room=${cls.MeetingRoomCode}&class=${cls.ClassID}&name=${encodeURIComponent(cls.ClassName)}"
+                 class="qa-btn ${isLive ? 'qa-btn--success' : 'qa-btn--teal'} qa-btn--sm">
+                🎥 ${isLive ? 'Start Class Now' : 'Open Classroom'}
+              </a>
+              <button class="qa-btn qa-btn--outline qa-btn--sm" onclick="openRoster('${cls.ClassID}','${Utils.sanitize(cls.ClassName)}')">
+                🎓 Roster
+              </button>
+              <a href="attendance.html?class=${cls.ClassID}" class="qa-btn qa-btn--outline qa-btn--sm">✅ Attendance</a>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderTodayBanner() {
+      const todayClasses = myClasses.filter(c => Utils.parseDays(c.DaysOfWeek).includes(todayDay));
+      if (!todayClasses.length) return;
+
+      document.getElementById('todayBanner').style.display = '';
+      document.getElementById('todayBannerContent').innerHTML = todayClasses.map(cls => {
+        const timeUntil = Utils.timeUntilClass(cls.TimeUTC, cls.DaysOfWeek);
+        return `
+          <div style="display:flex;align-items:center;gap:14px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.05);">
+            <div style="flex:1;">
+              <div style="font-family:var(--font-ui);font-weight:500;color:var(--cream);">${Utils.sanitize(cls.ClassName)}</div>
+              <div style="font-size:0.75rem;color:var(--teal-200);">${Utils.utcToLocal(cls.TimeUTC)} · ${cls.DurationMins} min · ${enrollments[cls.ClassID]?.length || 0} students</div>
+            </div>
+            <div style="font-size:0.78rem;color:var(--green-lt);font-family:var(--font-ui);">${timeUntil || ''}</div>
+            <a href="../student/classroom.html?room=${cls.MeetingRoomCode}&class=${cls.ClassID}&name=${encodeURIComponent(cls.ClassName)}"
+               class="qa-btn qa-btn--success qa-btn--sm">🎥 Enter</a>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function openRoster(classId, className) {
+      const stuList = enrollments[classId] || [];
+      document.getElementById('rosterTitle').textContent = '🎓 ' + className + ' — Roster';
+      const content = document.getElementById('rosterContent');
+
+      if (!stuList.length) {
+        content.innerHTML = `<div class="qa-empty"><div class="qa-empty__icon">👤</div><div class="qa-empty__title">No students enrolled</div></div>`;
+      } else {
+        content.innerHTML = `
+          <div style="margin-bottom:12px;font-size:0.78rem;color:var(--teal-200);font-family:var(--font-ui);">${stuList.length} enrolled student${stuList.length!==1?'s':''}</div>
+          ${stuList.map((s, i) => `
+            <div style="display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid rgba(255,255,255,0.05);">
+              <div style="font-family:var(--font-ui);font-size:0.8rem;color:var(--teal-300);width:20px;text-align:right;">${i+1}</div>
+              <div class="qa-avatar" style="width:34px;height:34px;font-size:0.68rem;">${s.name.split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase()}</div>
+              <div style="flex:1;">
+                <div style="font-family:var(--font-ui);font-size:0.88rem;color:var(--cream);">${Utils.sanitize(s.name)}</div>
+                <div style="font-size:0.7rem;color:var(--teal-300);">${Utils.sanitize(s.level||'')}</div>
+              </div>
+              <a href="progress.html?student=${s.studentId}" class="qa-btn qa-btn--outline qa-btn--sm">Progress →</a>
+            </div>
+          `).join('')}
+        `;
+      }
+      document.getElementById('rosterModal').style.display = 'flex';
+    }
+
+    function copyCode(code) {
+      navigator.clipboard.writeText(code).then(() => Utils.toast('Room code copied: ' + code, 'success'));
+    }
+
+    document.getElementById('rosterModal').addEventListener('click', e => { if (e.target === e.currentTarget) e.currentTarget.style.display='none'; });
+    loadData();
+  </script>
+</body>
+</html>

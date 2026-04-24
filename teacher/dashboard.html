@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Teacher Dashboard — Quran Academy</title>
+  <link rel="stylesheet" href="../css/main.css" />
+</head>
+<body>
+  <div class="qa-bg-pattern"></div>
+  <div class="qa-shell">
+
+    <aside class="qa-sidebar" id="sidebar">
+      <div class="qa-sidebar__logo">
+        <span class="qa-logo-arabic">أكاديمية القرآن</span>
+        <h1>Quran Academy</h1>
+        <span class="qa-logo-sub">Teacher Portal</span>
+      </div>
+      <ul class="qa-nav">
+        <li class="qa-nav__section">My Classes</li>
+        <li class="qa-nav__item"><a href="dashboard.html" class="active"><span class="icon">🏠</span> Dashboard</a></li>
+        <li class="qa-nav__item"><a href="my-classes.html"><span class="icon">📚</span> My Classes</a></li>
+        <li class="qa-nav__item"><a href="students.html"><span class="icon">🎓</span> My Students</a></li>
+        <li class="qa-nav__section">Teaching Tools</li>
+        <li class="qa-nav__item"><a href="../student/classroom.html"><span class="icon">🎥</span> Start Live Class</a></li>
+        <li class="qa-nav__item"><a href="progress.html"><span class="icon">📈</span> Student Progress</a></li>
+        <li class="qa-nav__item"><a href="attendance.html"><span class="icon">✅</span> Attendance</a></li>
+      </ul>
+      <div class="qa-sidebar__user" id="sidebarUser"></div>
+      <button class="qa-sidebar__logout" onclick="Auth.logout()">🚪 Sign Out</button>
+    </aside>
+
+    <main class="qa-main">
+      <div class="qa-topbar">
+        <div style="display:flex;align-items:center;gap:14px;">
+          <button class="qa-hamburger" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</button>
+          <span class="qa-topbar__title">Teacher Dashboard</span>
+        </div>
+        <div class="qa-topbar__right">
+          <div class="qa-prayer-badge" id="nextPrayer">🕌 —</div>
+        </div>
+      </div>
+
+      <div class="qa-page">
+        <!-- Greeting -->
+        <div class="qa-card" style="background:linear-gradient(135deg,var(--teal-600),var(--dark-2));margin-bottom:24px;position:relative;overflow:hidden;">
+          <div style="position:absolute;top:-10px;right:20px;font-size:6rem;opacity:0.07;font-family:var(--font-arabic);">📖</div>
+          <div style="position:relative;z-index:1;">
+            <div style="font-family:var(--font-arabic);font-size:1.3rem;color:var(--gold-300);direction:rtl;text-align:left;margin-bottom:8px;">بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ</div>
+            <h2 id="greeting" style="font-family:var(--font-display);font-size:1.3rem;color:var(--cream);margin-bottom:6px;"></h2>
+            <p style="font-size:0.85rem;color:var(--teal-100);font-family:var(--font-ui);">May Allah bless your teaching and make it a source of barakah.</p>
+          </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="qa-stats-grid" style="margin-bottom:28px;">
+          <div class="qa-stat"><div class="qa-stat__icon">📚</div><div class="qa-stat__num" id="statClasses">—</div><div class="qa-stat__label">My Classes</div></div>
+          <div class="qa-stat"><div class="qa-stat__icon">🎓</div><div class="qa-stat__num" id="statStudents">—</div><div class="qa-stat__label">Total Students</div></div>
+          <div class="qa-stat"><div class="qa-stat__icon">📅</div><div class="qa-stat__num" id="statToday">—</div><div class="qa-stat__label">Today's Classes</div></div>
+          <div class="qa-stat"><div class="qa-stat__icon">📈</div><div class="qa-stat__num" id="statProgress">—</div><div class="qa-stat__label">Progress Logs</div></div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:2fr 1fr;gap:24px;" class="main-grid">
+
+          <!-- Left: Today + All classes -->
+          <div>
+            <!-- Today's Classes -->
+            <div class="qa-card">
+              <div class="qa-card__title">📅 Today's Classes</div>
+              <div id="todayClasses">
+                <div class="qa-empty"><div class="qa-empty__icon">⏳</div><div class="qa-empty__title">Loading...</div></div>
+              </div>
+            </div>
+
+            <!-- All my classes -->
+            <div class="qa-card">
+              <div class="qa-card__title">📚 All My Classes</div>
+              <div id="allClassesList">
+                <div class="qa-empty"><div class="qa-empty__icon">📚</div><div class="qa-empty__title">Loading...</div></div>
+              </div>
+            </div>
+
+            <!-- Recent progress logs -->
+            <div class="qa-card">
+              <div class="qa-card__title">📈 Recent Progress Logs</div>
+              <div id="recentProgress">
+                <div class="qa-empty"><div class="qa-empty__icon">📈</div><div class="qa-empty__title">Loading...</div></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: Quick actions + log progress -->
+          <div>
+            <!-- Quick Log Progress -->
+            <div class="qa-card">
+              <div class="qa-card__title">✍ Log Student Progress</div>
+              <div class="qa-form-group">
+                <label class="qa-label">Student</label>
+                <select id="progStudent" class="qa-select"><option value="">Select student...</option></select>
+              </div>
+              <div class="qa-form-grid">
+                <div class="qa-form-group">
+                  <label class="qa-label">Surah</label>
+                  <select id="progSurah" class="qa-select"><option value="">Select Surah...</option></select>
+                </div>
+                <div class="qa-form-group">
+                  <label class="qa-label">Score %</label>
+                  <input type="number" id="progScore" class="qa-input" min="0" max="100" placeholder="85" />
+                </div>
+              </div>
+              <div class="qa-form-grid">
+                <div class="qa-form-group">
+                  <label class="qa-label">From Ayah</label>
+                  <input type="number" id="progFrom" class="qa-input" min="1" placeholder="1" />
+                </div>
+                <div class="qa-form-group">
+                  <label class="qa-label">To Ayah</label>
+                  <input type="number" id="progTo" class="qa-input" min="1" placeholder="7" />
+                </div>
+              </div>
+              <div class="qa-form-group">
+                <label class="qa-label">Teacher Notes</label>
+                <textarea id="progNotes" class="qa-textarea" style="min-height:70px;" placeholder="Pronunciation good, work on tajweed rules..."></textarea>
+              </div>
+              <button class="qa-btn qa-btn--primary qa-btn--block" onclick="logProgress()">📝 Save Progress Log</button>
+            </div>
+
+            <!-- Announcements -->
+            <div class="qa-card">
+              <div class="qa-card__title">📢 Announcements</div>
+              <div id="announcements">
+                <div class="qa-empty"><div class="qa-empty__icon">📢</div><div class="qa-empty__title">Loading...</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="../js/api.js"></script>
+  <script>
+    Auth.requireAuth('teacher');
+    const user = Auth.getUser();
+    const teacherId = Auth.getUserId();
+
+    document.getElementById('greeting').textContent = 'Assalamu Alaikum, Ustadh/Ustadha ' + (user?.FullName || '') + ' 🌙';
+    document.getElementById('sidebarUser').innerHTML = `
+      <div class="qa-avatar">${(user?.FullName||'T').split(' ').map(n=>n[0]).join('').slice(0,2)}</div>
+      <div><div class="name">${user?.FullName||'Teacher'}</div><div class="role">${user?.Specialization||'Teacher'}</div></div>
+    `;
+    document.querySelector('.qa-main').addEventListener('click', () => document.getElementById('sidebar').classList.remove('open'));
+
+    const DAY_NAMES = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    const SURAH_LIST = [
+      [1,'Al-Fatihah',7],[2,'Al-Baqarah',286],[3,'Ali-Imran',200],[4,'An-Nisa',176],
+      [5,'Al-Maidah',120],[6,'Al-Anam',165],[7,'Al-Araf',206],[36,'Ya-Sin',83],
+      [67,'Al-Mulk',30],[78,'An-Naba',40],[87,'Al-Ala',19],[93,'Ad-Dhuha',11],
+      [94,'Ash-Sharh',8],[96,'Al-Alaq',19],[99,'Az-Zalzalah',8],[100,'Al-Adiyat',11],
+      [108,'Al-Kawthar',3],[109,'Al-Kafirun',6],[110,'An-Nasr',3],[112,'Al-Ikhlas',4],
+      [113,'Al-Falaq',5],[114,'An-Nas',6]
+    ];
+
+    let myClasses   = [];
+    let myStudents  = [];
+
+    async function loadDashboard() {
+      try {
+        const [clsRes, annRes] = await Promise.all([
+          API.getClasses({ teacherId }),
+          API.getAnnouncements('teachers')
+        ]);
+        myClasses = (clsRes.classes || []).filter(c => c.Status === 'Active');
+        document.getElementById('statClasses').textContent = myClasses.length;
+
+        const todayDay = new Date().getDay();
+        const todayClasses = myClasses.filter(c => Utils.parseDays(c.DaysOfWeek).includes(todayDay));
+        document.getElementById('statToday').textContent = todayClasses.length;
+
+        renderTodayClasses(todayClasses);
+        renderAllClasses(myClasses);
+        renderAnnouncements((annRes.announcements || []).slice(0, 4));
+
+        // Load students for all my classes
+        await loadMyStudents();
+        populateSurahDropdown();
+
+      } catch (err) { Utils.toast('Load error: ' + err.message, 'error'); }
+    }
+
+    async function loadMyStudents() {
+      const studentSet = new Set();
+      myStudents = [];
+      for (const cls of myClasses) {
+        try {
+          const res = await API.getEnrollments({ classId: cls.ClassID });
+          (res.enrollments || []).forEach(e => {
+            if (!studentSet.has(e.StudentID)) {
+              studentSet.add(e.StudentID);
+              myStudents.push({ id: e.StudentID, classId: cls.ClassID });
+            }
+          });
+        } catch {}
+      }
+
+      // Fetch all students to get names
+      try {
+        const all = await API.getAllStudents();
+        myStudents = myStudents.map(ms => {
+          const s = (all.students || []).find(x => x.ID === ms.id);
+          return s ? { ...ms, name: s.FullName, level: s.Level } : ms;
+        }).filter(s => s.name);
+      } catch {}
+
+      document.getElementById('statStudents').textContent = myStudents.length;
+
+      // Populate student dropdown
+      const sel = document.getElementById('progStudent');
+      sel.innerHTML = '<option value="">Select student...</option>';
+      myStudents.forEach(s => {
+        const opt = document.createElement('option');
+        opt.value = s.id;
+        opt.textContent = s.name + (s.level ? ' (' + s.level + ')' : '');
+        sel.appendChild(opt);
+      });
+
+      // Load progress count
+      let progCount = 0;
+      for (const s of myStudents.slice(0,5)) {
+        try {
+          const res = await API.getProgress(s.id);
+          progCount += (res.progress || []).length;
+        } catch {}
+      }
+      document.getElementById('statProgress').textContent = progCount + (myStudents.length > 5 ? '+' : '');
+      renderRecentProgress();
+    }
+
+    async function renderRecentProgress() {
+      const el = document.getElementById('recentProgress');
+      const logs = [];
+      for (const s of myStudents.slice(0, 3)) {
+        try {
+          const res = await API.getProgress(s.id);
+          const recent = (res.progress || []).slice(0, 2);
+          logs.push(...recent.map(p => ({ ...p, studentName: s.name })));
+        } catch {}
+      }
+
+      if (!logs.length) {
+        el.innerHTML = `<div class="qa-empty"><div class="qa-empty__icon">📈</div><div class="qa-empty__title">No progress logged yet</div></div>`;
+        return;
+      }
+
+      el.innerHTML = logs.sort((a,b) => new Date(b.Date)-new Date(a.Date)).slice(0,6).map(p => `
+        <div style="display:flex;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.05);">
+          <div class="qa-avatar" style="width:32px;height:32px;font-size:0.65rem;">${(p.studentName||'S').split(' ').map(n=>n[0]).join('').slice(0,2)}</div>
+          <div style="flex:1;">
+            <div style="font-size:0.85rem;font-family:var(--font-ui);color:var(--cream);">${Utils.sanitize(p.studentName||'—')}</div>
+            <div style="font-size:0.72rem;color:var(--teal-200);">${Utils.sanitize(p.SurahName||'')} · Ayah ${p.AyahFrom}–${p.AyahTo} · ${Utils.formatDate(p.Date)}</div>
+          </div>
+          ${p.Score ? `<span class="qa-badge qa-badge--active">${p.Score}%</span>` : ''}
+        </div>
+      `).join('');
+    }
+
+    function renderTodayClasses(classes) {
+      const el = document.getElementById('todayClasses');
+      if (!classes.length) {
+        el.innerHTML = `<div class="qa-empty"><div class="qa-empty__icon">😌</div><div class="qa-empty__title">No classes today</div><div class="qa-empty__msg">Rest and prepare for your next session.</div></div>`;
+        return;
+      }
+      el.innerHTML = classes.map(cls => {
+        const timeUntil = Utils.timeUntilClass(cls.TimeUTC, cls.DaysOfWeek);
+        const isNow = timeUntil === 'Starting now!' || (timeUntil && parseInt(timeUntil) <= 15);
+        return `
+          <div class="qa-class-card" style="border-left: 3px solid var(--gold-500);">
+            <div class="qa-class-card__time">⏰ ${Utils.utcToLocal(cls.TimeUTC)} — ${cls.DurationMins} min</div>
+            <div class="qa-class-card__name">${Utils.sanitize(cls.ClassName)}</div>
+            <div class="qa-class-card__meta">📚 ${cls.Subject} · 🔑 Room: <strong style="color:var(--gold-400);">${cls.MeetingRoomCode}</strong></div>
+            ${isNow ? `
+              <div class="qa-class-card__live">
+                <a href="../student/classroom.html?room=${cls.MeetingRoomCode}&class=${cls.ClassID}&name=${encodeURIComponent(cls.ClassName)}"
+                   class="qa-btn qa-btn--success qa-btn--sm">🎥 Start Class Now</a>
+              </div>
+            ` : `
+              <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
+                <a href="../student/classroom.html?room=${cls.MeetingRoomCode}&class=${cls.ClassID}&name=${encodeURIComponent(cls.ClassName)}"
+                   class="qa-btn qa-btn--teal qa-btn--sm">🎥 Open Classroom</a>
+                <span style="font-size:0.75rem;color:var(--teal-300);align-self:center;">${timeUntil || ''}</span>
+              </div>
+            `}
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderAllClasses(classes) {
+      const el = document.getElementById('allClassesList');
+      if (!classes.length) {
+        el.innerHTML = `<div class="qa-empty"><div class="qa-empty__icon">📚</div><div class="qa-empty__title">No classes assigned</div><div class="qa-empty__msg">Contact admin to get assigned to a class.</div></div>`;
+        return;
+      }
+      el.innerHTML = `
+        <div class="qa-table-wrap">
+          <table class="qa-table">
+            <thead><tr><th>Class</th><th>Subject</th><th>Days</th><th>Time</th><th>Room Code</th><th>Actions</th></tr></thead>
+            <tbody>
+              ${classes.map(c => `
+                <tr>
+                  <td class="font-ui" style="font-weight:500;">${Utils.sanitize(c.ClassName)}</td>
+                  <td><span class="qa-badge qa-badge--active" style="font-size:0.65rem;">${c.Subject}</span></td>
+                  <td class="text-sm">${Utils.daysDisplay(c.DaysOfWeek)}</td>
+                  <td class="text-sm">${Utils.utcToLocal(c.TimeUTC)}</td>
+                  <td style="font-family:monospace;color:var(--gold-400);font-size:0.8rem;">${c.MeetingRoomCode}</td>
+                  <td>
+                    <a href="../student/classroom.html?room=${c.MeetingRoomCode}&class=${c.ClassID}&name=${encodeURIComponent(c.ClassName)}"
+                       class="qa-btn qa-btn--teal qa-btn--sm">🎥 Enter</a>
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    function renderAnnouncements(anns) {
+      const el = document.getElementById('announcements');
+      if (!anns.length) {
+        el.innerHTML = `<div class="qa-empty"><div class="qa-empty__icon">📢</div><div class="qa-empty__title">No announcements</div></div>`;
+        return;
+      }
+      el.innerHTML = anns.map(a => `
+        <div class="qa-announcement">
+          <div class="qa-announcement__title">${Utils.sanitize(a.Title)}</div>
+          <div class="qa-announcement__body">${Utils.truncate(Utils.sanitize(a.Body), 100)}</div>
+          <div class="qa-announcement__meta">${Utils.formatDate(a.PostedAt)}</div>
+        </div>
+      `).join('');
+    }
+
+    function populateSurahDropdown() {
+      const sel = document.getElementById('progSurah');
+      sel.innerHTML = '<option value="">Select Surah...</option>';
+      SURAH_LIST.forEach(([num, name, ayahs]) => {
+        const opt = document.createElement('option');
+        opt.value = num + '|' + name + '|' + ayahs;
+        opt.textContent = num + '. ' + name + ' (' + ayahs + ' ayat)';
+        sel.appendChild(opt);
+      });
+    }
+
+    async function logProgress() {
+      const studentId = document.getElementById('progStudent').value;
+      const surahRaw  = document.getElementById('progSurah').value;
+      const score     = document.getElementById('progScore').value;
+      const from      = document.getElementById('progFrom').value;
+      const to        = document.getElementById('progTo').value;
+      const notes     = document.getElementById('progNotes').value.trim();
+
+      if (!studentId || !surahRaw) { Utils.toast('Please select student and Surah.', 'warning'); return; }
+
+      const [surahNum, surahName] = surahRaw.split('|');
+      const student = myStudents.find(s => s.id === studentId);
+
+      try {
+        await Utils.withLoader(() => API.addProgress({
+          studentId,
+          studentName: student?.name || '',
+          surahNumber: surahNum,
+          surahName,
+          ayahFrom: from || '1',
+          ayahTo: to || '1',
+          score: score || '',
+          notes,
+          subject: 'Quran',
+          date: new Date().toISOString().split('T')[0]
+        }), 'Saving progress...');
+
+        Utils.toast('Progress logged for ' + (student?.name || 'student') + '!', 'success');
+        document.getElementById('progStudent').value = '';
+        document.getElementById('progSurah').value = '';
+        document.getElementById('progScore').value = '';
+        document.getElementById('progFrom').value = '';
+        document.getElementById('progTo').value = '';
+        document.getElementById('progNotes').value = '';
+        renderRecentProgress();
+      } catch (err) { Utils.toast(err.message, 'error'); }
+    }
+
+    async function loadPrayerTimes() {
+      try {
+        const data = await API.getPrayerTimes('Lahore','Pakistan');
+        const now = new Date();
+        const prayers = [['Fajr',data.timings.Fajr],['Dhuhr',data.timings.Dhuhr],['Asr',data.timings.Asr],['Maghrib',data.timings.Maghrib],['Isha',data.timings.Isha]];
+        const next = prayers.find(([,t]) => { const [h,m]=t.split(':').map(Number);const pt=new Date();pt.setHours(h,m);return pt>now; });
+        if (next) document.getElementById('nextPrayer').textContent = `🕌 ${next[0]}: ${next[1]}`;
+      } catch {}
+    }
+
+    loadDashboard();
+    loadPrayerTimes();
+  </script>
+  <style>
+    @media (max-width: 900px) { .main-grid { grid-template-columns: 1fr !important; } }
+  </style>
+</body>
+</html>

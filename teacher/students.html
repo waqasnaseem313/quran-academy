@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Students — Quran Academy Teacher</title>
+  <link rel="stylesheet" href="../css/main.css" />
+</head>
+<body>
+  <div class="qa-bg-pattern"></div>
+  <div class="qa-shell">
+
+    <aside class="qa-sidebar" id="sidebar">
+      <div class="qa-sidebar__logo">
+        <span class="qa-logo-arabic">أكاديمية القرآن</span>
+        <h1>Quran Academy</h1>
+        <span class="qa-logo-sub">Teacher Portal</span>
+      </div>
+      <ul class="qa-nav">
+        <li class="qa-nav__section">My Classes</li>
+        <li class="qa-nav__item"><a href="dashboard.html"><span class="icon">🏠</span> Dashboard</a></li>
+        <li class="qa-nav__item"><a href="my-classes.html"><span class="icon">📚</span> My Classes</a></li>
+        <li class="qa-nav__item"><a href="students.html" class="active"><span class="icon">🎓</span> My Students</a></li>
+        <li class="qa-nav__section">Teaching Tools</li>
+        <li class="qa-nav__item"><a href="../student/classroom.html"><span class="icon">🎥</span> Start Live Class</a></li>
+        <li class="qa-nav__item"><a href="progress.html"><span class="icon">📈</span> Student Progress</a></li>
+        <li class="qa-nav__item"><a href="attendance.html"><span class="icon">✅</span> Attendance</a></li>
+      </ul>
+      <div class="qa-sidebar__user" id="sidebarUser"></div>
+      <button class="qa-sidebar__logout" onclick="Auth.logout()">🚪 Sign Out</button>
+    </aside>
+
+    <main class="qa-main">
+      <div class="qa-topbar">
+        <div style="display:flex;align-items:center;gap:14px;">
+          <button class="qa-hamburger" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</button>
+          <span class="qa-topbar__title">My Students</span>
+        </div>
+      </div>
+
+      <div class="qa-page">
+        <div class="qa-stats-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:24px;">
+          <div class="qa-stat"><div class="qa-stat__icon">🎓</div><div class="qa-stat__num" id="statTotal">—</div><div class="qa-stat__label">Total Students</div></div>
+          <div class="qa-stat"><div class="qa-stat__icon">⚠️</div><div class="qa-stat__num" id="statLowAtt">—</div><div class="qa-stat__label">Low Attendance</div></div>
+          <div class="qa-stat"><div class="qa-stat__icon">📈</div><div class="qa-stat__num" id="statAvgScore">—%</div><div class="qa-stat__label">Avg Score</div></div>
+        </div>
+
+        <!-- Filter bar -->
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px;">
+          <div class="qa-search" style="flex:1;min-width:220px;margin-bottom:0;">
+            <span class="qa-search__icon">🔍</span>
+            <input type="text" id="searchInput" placeholder="Search students..." oninput="renderStudents()" />
+          </div>
+          <select id="filterClass" class="qa-select" style="width:200px;margin-bottom:0;" onchange="renderStudents()">
+            <option value="">All Classes</option>
+          </select>
+        </div>
+
+        <!-- Student cards -->
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;" id="studentGrid">
+          <div class="qa-empty" style="grid-column:1/-1;"><div class="qa-empty__icon">🎓</div><div class="qa-empty__title">Loading...</div></div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Student detail modal -->
+  <div id="studentModal" class="qa-modal-overlay" style="display:none;">
+    <div class="qa-modal" style="max-width:540px;">
+      <div class="qa-modal__title" id="studentModalTitle">Student Details</div>
+      <button class="qa-modal__close" onclick="document.getElementById('studentModal').style.display='none'">✕</button>
+      <div id="studentModalBody"></div>
+    </div>
+  </div>
+
+  <script src="../js/api.js"></script>
+  <script>
+    Auth.requireAuth('teacher');
+    const user      = Auth.getUser();
+    const teacherId = Auth.getUserId();
+
+    document.getElementById('sidebarUser').innerHTML = `
+      <div class="qa-avatar">${(user?.FullName||'T').split(' ').map(n=>n[0]).join('').slice(0,2)}</div>
+      <div><div class="name">${user?.FullName||'Teacher'}</div><div class="role">${user?.Specialization||'Teacher'}</div></div>
+    `;
+    document.querySelector('.qa-main').addEventListener('click', () => document.getElementById('sidebar').classList.remove('open'));
+
+    let myStudents     = [];   // [{id, name, level, classId, className, attPct, avgScore}]
+    let myClasses      = [];
+    let studentDetails = {};   // id -> {att, progress}
+
+    async function loadData() {
+      try {
+        const [clsRes, stuRes] = await Promise.all([
+          API.getClasses({ teacherId }),
+          API.getAllStudents()
+        ]);
+        myClasses  = (clsRes.classes || []).filter(c => c.Status === 'Active');
+        const allStu = (stuRes.students || []).filter(s => s.Status === 'Active');
+
+        // Populate class filter
+        const sel = document.getElementById('filterClass');
+        myClasses.forEach(c => {
+          const opt = document.createElement('option');
+          opt.value = c.ClassID; opt.textContent = c.ClassName;
+          sel.appendChild(opt);
+        });
+
+        // Collect unique students across all my classes
+        const studentSet = new Map();
+        await Promise.all(myClasses.map(async cls => {
+          try {
+            const res = await API.getEnrollments({ classId: cls.ClassID });
+            (res.enrollments || []).forEach(e => {
+              const s = allStu.find(x => x.ID === e.StudentID);
+              if (s && !studentSet.has(s.ID)) {
+                studentSet.set(s.ID, { ...s, classId: cls.ClassID, className: cls.ClassName });
+              }
+            });
+          } catch {}
+        }));
+
+        // Load attendance + progress in parallel batches
+        myStudents = [];
+        for (const [id, s] of studentSet) {
+          let attPct = 0, avgScore = 0;
+          try {
+            const [attRes, progRes] = await Promise.all([
+              API.getAttendance({ studentId: id }),
+              API.getProgress(id)
+            ]);
+            attPct = attRes.percentage || 0;
+            const scores = (progRes.progress || []).map(p => parseInt(p.Score)).filter(n => !isNaN(n) && n > 0);
+            avgScore = scores.length ? Math.round(scores.reduce((a,b)=>a+b,0)/scores.length) : 0;
+            studentDetails[id] = { att: attRes, progress: progRes.progress || [] };
+          } catch {}
+          myStudents.push({ ...s, attPct, avgScore });
+        }
+
+        updateStats();
+        renderStudents();
+      } catch (err) { Utils.toast('Error: ' + err.message, 'error'); }
+    }
+
+    function updateStats() {
+      document.getElementById('statTotal').textContent   = myStudents.length;
+      document.getElementById('statLowAtt').textContent  = myStudents.filter(s => s.attPct < 70 && s.attPct > 0).length;
+      const scores = myStudents.map(s => s.avgScore).filter(n => n > 0);
+      document.getElementById('statAvgScore').textContent = scores.length ? Math.round(scores.reduce((a,b)=>a+b,0)/scores.length) + '%' : '—%';
+    }
+
+    function renderStudents() {
+      const q      = (document.getElementById('searchInput').value || '').toLowerCase();
+      const clsId  = document.getElementById('filterClass').value;
+      const filtered = myStudents.filter(s => {
+        const mq = !q || (s.FullName||'').toLowerCase().includes(q) || (s.Level||'').toLowerCase().includes(q);
+        const mc = !clsId || s.classId === clsId;
+        return mq && mc;
+      });
+
+      const grid = document.getElementById('studentGrid');
+      if (!filtered.length) {
+        grid.innerHTML = `<div class="qa-empty" style="grid-column:1/-1;">
+          <div class="qa-empty__icon">🔍</div><div class="qa-empty__title">No students found</div>
+        </div>`;
+        return;
+      }
+
+      // Sort: low attendance first
+      filtered.sort((a, b) => a.attPct - b.attPct);
+
+      grid.innerHTML = filtered.map(s => {
+        const initials  = (s.FullName||'S').split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase();
+        const attColor  = s.attPct >= 85 ? 'var(--green)' : s.attPct >= 70 ? 'var(--amber)' : s.attPct > 0 ? 'var(--red-lt)' : 'var(--teal-300)';
+        const scoreColor = s.avgScore >= 85 ? 'var(--green)' : s.avgScore >= 70 ? 'var(--amber)' : s.avgScore > 0 ? 'var(--red-lt)' : 'var(--teal-300)';
+        const details = studentDetails[s.ID];
+        const lastProg = details?.progress?.[0];
+
+        return `
+          <div style="background:linear-gradient(135deg,var(--teal-700),var(--teal-800));border:1px solid rgba(201,168,76,${s.attPct>0&&s.attPct<70?'0.35':'0.15'});border-radius:var(--radius-lg);padding:20px;transition:all var(--transition);cursor:pointer;"
+            onmouseenter="this.style.transform='translateY(-3px)';this.style.boxShadow='var(--shadow-gold)'"
+            onmouseleave="this.style.transform='';this.style.boxShadow=''"
+            onclick="openStudentModal('${s.ID}')">
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
+              <div class="qa-avatar" style="width:44px;height:44px;font-size:0.9rem;">${initials}</div>
+              <div style="flex:1;overflow:hidden;">
+                <div style="font-family:var(--font-ui);font-weight:600;font-size:0.92rem;color:var(--cream);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${Utils.sanitize(s.FullName)}</div>
+                <div style="font-size:0.72rem;color:var(--teal-200);">${Utils.sanitize(s.Level||'')} · ${Utils.sanitize(s.Country||'')}</div>
+              </div>
+              ${s.attPct > 0 && s.attPct < 70 ? '<div title="Low attendance" style="color:var(--red-lt);font-size:1rem;">⚠️</div>' : ''}
+            </div>
+
+            <!-- Class badge -->
+            <div style="font-size:0.7rem;background:rgba(13,76,76,0.4);border-radius:20px;padding:3px 10px;color:var(--teal-200);margin-bottom:12px;font-family:var(--font-ui);display:inline-block;">
+              📚 ${Utils.sanitize(s.className||'—')}
+            </div>
+
+            <!-- Stats row -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+              <div style="text-align:center;background:rgba(10,22,40,0.4);border-radius:8px;padding:10px;">
+                <div style="font-family:var(--font-display);font-size:1.4rem;color:${attColor};">${s.attPct || 0}%</div>
+                <div style="font-size:0.62rem;color:var(--teal-300);text-transform:uppercase;letter-spacing:0.06em;font-family:var(--font-ui);">Attendance</div>
+              </div>
+              <div style="text-align:center;background:rgba(10,22,40,0.4);border-radius:8px;padding:10px;">
+                <div style="font-family:var(--font-display);font-size:1.4rem;color:${scoreColor};">${s.avgScore || '—'}${s.avgScore?'%':''}</div>
+                <div style="font-size:0.62rem;color:var(--teal-300);text-transform:uppercase;letter-spacing:0.06em;font-family:var(--font-ui);">Avg Score</div>
+              </div>
+            </div>
+
+            ${lastProg ? `
+              <div style="font-size:0.72rem;color:var(--teal-200);padding:8px 10px;background:rgba(13,76,76,0.3);border-radius:6px;">
+                Last: ${Utils.sanitize(lastProg.SurahName||'Surah '+lastProg.SurahNumber)} · Ayah ${lastProg.AyahFrom}–${lastProg.AyahTo}
+              </div>
+            ` : ''}
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function openStudentModal(id) {
+      const s = myStudents.find(x => x.ID === id);
+      if (!s) return;
+      const details = studentDetails[id] || { att: {attendance:[], percentage:0}, progress:[] };
+      const initials = (s.FullName||'S').split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase();
+
+      document.getElementById('studentModalTitle').textContent = '🎓 ' + s.FullName;
+      document.getElementById('studentModalBody').innerHTML = `
+        <div style="display:flex;align-items:center;gap:14px;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid rgba(201,168,76,0.1);">
+          <div class="qa-avatar" style="width:52px;height:52px;font-size:1rem;">${initials}</div>
+          <div>
+            <div style="font-size:0.85rem;color:var(--teal-200);">${Utils.sanitize(s.Email||'')}</div>
+            <div style="font-size:0.82rem;color:var(--teal-200);">📱 ${Utils.sanitize(s.WhatsApp||'—')}</div>
+            <div style="margin-top:6px;display:flex;gap:6px;">
+              <span class="qa-badge qa-badge--active">${s.Level}</span>
+              <span class="qa-badge qa-badge--pending">${s.Country||'—'}</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px;">
+          <div style="text-align:center;background:rgba(13,76,76,0.3);border-radius:10px;padding:16px;">
+            <div style="font-family:var(--font-display);font-size:2rem;color:${s.attPct>=85?'var(--green)':s.attPct>=70?'var(--amber)':'var(--red-lt)'};">${s.attPct}%</div>
+            <div style="font-size:0.7rem;color:var(--teal-200);">Attendance</div>
+            <div style="font-size:0.68rem;color:var(--teal-300);">${details.att.present||0} / ${details.att.total||0} sessions</div>
+          </div>
+          <div style="text-align:center;background:rgba(13,76,76,0.3);border-radius:10px;padding:16px;">
+            <div style="font-family:var(--font-display);font-size:2rem;color:${s.avgScore>=85?'var(--green)':s.avgScore>=70?'var(--amber)':s.avgScore>0?'var(--red-lt)':'var(--teal-300)'};">${s.avgScore||'—'}${s.avgScore?'%':''}</div>
+            <div style="font-size:0.7rem;color:var(--teal-200);">Avg Score</div>
+            <div style="font-size:0.68rem;color:var(--teal-300);">${details.progress.length} lessons logged</div>
+          </div>
+        </div>
+
+        <div style="font-family:var(--font-ui);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--teal-300);margin-bottom:8px;">Recent Progress</div>
+        ${details.progress.slice(0,4).map(p => `
+          <div style="padding:8px 12px;background:rgba(13,76,76,0.2);border-radius:6px;border-left:2px solid var(--gold-500);margin-bottom:6px;font-family:var(--font-ui);font-size:0.78rem;">
+            <div style="display:flex;justify-content:space-between;">
+              <span style="color:var(--cream);">${Utils.sanitize(p.SurahName||'Surah '+p.SurahNumber)} · Ayah ${p.AyahFrom}–${p.AyahTo}</span>
+              ${p.Score?`<span style="color:var(--gold-400);">${p.Score}%</span>`:''}
+            </div>
+            <div style="color:var(--teal-300);font-size:0.7rem;margin-top:2px;">${Utils.formatDate(p.Date)}</div>
+          </div>
+        `).join('') || '<div style="color:var(--teal-300);font-size:0.82rem;">No progress logged yet.</div>'}
+
+        <div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;">
+          ${s.WhatsApp?`<a href="https://wa.me/${(s.WhatsApp||'').replace(/\D/g,'')}" target="_blank" class="qa-btn qa-btn--success qa-btn--sm">💬 WhatsApp</a>`:''}
+          ${s.Email?`<a href="mailto:${s.Email}" class="qa-btn qa-btn--outline qa-btn--sm">✉ Email</a>`:''}
+          <a href="progress.html?student=${s.ID}" class="qa-btn qa-btn--teal qa-btn--sm">📈 Full Progress</a>
+        </div>
+      `;
+      document.getElementById('studentModal').style.display = 'flex';
+    }
+
+    document.getElementById('studentModal').addEventListener('click', e => { if (e.target === e.currentTarget) e.currentTarget.style.display='none'; });
+    loadData();
+  </script>
+</body>
+</html>

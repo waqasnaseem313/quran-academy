@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Quran Academy — Online Islamic Education</title>
+  <link rel="stylesheet" href="css/main.css" />
+  <style>
+    /* Landing hero */
+    .qa-hero {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .qa-hero__left {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 80px 64px;
+      position: relative;
+      z-index: 2;
+    }
+
+    .qa-hero__badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(201,168,76,0.1);
+      border: 1px solid rgba(201,168,76,0.3);
+      border-radius: 20px;
+      padding: 6px 16px;
+      font-family: var(--font-ui);
+      font-size: 0.75rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--gold-400);
+      margin-bottom: 28px;
+      width: fit-content;
+    }
+
+    .qa-hero__arabic {
+      font-family: var(--font-arabic);
+      font-size: 3rem;
+      color: var(--gold-300);
+      direction: rtl;
+      text-align: right;
+      line-height: 1.4;
+      margin-bottom: 8px;
+      animation: qa-fade-in 0.8s ease;
+    }
+
+    .qa-hero__title {
+      font-family: var(--font-display);
+      font-size: 2.8rem;
+      font-weight: 700;
+      color: var(--cream);
+      line-height: 1.2;
+      margin-bottom: 20px;
+      animation: qa-fade-in 0.9s ease;
+    }
+
+    .qa-hero__title span { color: var(--gold-400); }
+
+    .qa-hero__desc {
+      font-size: 1rem;
+      color: var(--teal-100);
+      line-height: 1.7;
+      max-width: 440px;
+      margin-bottom: 36px;
+      opacity: 0.85;
+      animation: qa-fade-in 1s ease;
+    }
+
+    .qa-hero__actions {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+      animation: qa-fade-in 1.1s ease;
+    }
+
+    .qa-hero__features {
+      display: flex;
+      gap: 32px;
+      margin-top: 52px;
+      flex-wrap: wrap;
+    }
+
+    .qa-feature-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-family: var(--font-ui);
+      font-size: 0.82rem;
+      color: var(--teal-200);
+    }
+
+    .qa-feature-item span { font-size: 1.1rem; }
+
+    /* Right panel — decorative */
+    .qa-hero__right {
+      position: relative;
+      background: linear-gradient(160deg, var(--teal-700) 0%, var(--dark-2) 100%);
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .qa-hero__right::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cg fill='none' stroke='%23C9A84C' stroke-width='0.4' opacity='0.15'%3E%3Cpolygon points='60,4 116,34 116,86 60,116 4,86 4,34'/%3E%3Cpolygon points='60,18 102,42 102,78 60,102 18,78 18,42'/%3E%3Cpolygon points='60,32 88,50 88,70 60,88 32,70 32,50'/%3E%3Cpolygon points='60,46 74,58 74,62 60,74 46,62 46,58'/%3E%3Cline x1='60' y1='4' x2='60' y2='32'/%3E%3Cline x1='116' y1='34' x2='102' y2='42'/%3E%3Cline x1='116' y1='86' x2='102' y2='78'/%3E%3Cline x1='60' y1='116' x2='60' y2='88'/%3E%3Cline x1='4' y1='86' x2='18' y2='78'/%3E%3Cline x1='4' y1='34' x2='18' y2='42'/%3E%3C/g%3E%3C/svg%3E");
+      background-size: 120px 120px;
+    }
+
+    .qa-hero__illustration {
+      position: relative;
+      z-index: 2;
+      text-align: center;
+      padding: 40px;
+    }
+
+    .qa-hero__moon {
+      font-size: 8rem;
+      display: block;
+      margin-bottom: 20px;
+      animation: float 4s ease-in-out infinite;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50%       { transform: translateY(-12px); }
+    }
+
+    .qa-hero__stats {
+      display: flex;
+      gap: 24px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .qa-hero__stat-item {
+      text-align: center;
+      background: rgba(10,22,40,0.5);
+      border: 1px solid rgba(201,168,76,0.2);
+      border-radius: var(--radius-md);
+      padding: 16px 24px;
+      min-width: 100px;
+    }
+
+    .qa-hero__stat-num {
+      font-family: var(--font-display);
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: var(--gold-400);
+    }
+
+    .qa-hero__stat-lbl {
+      font-family: var(--font-ui);
+      font-size: 0.7rem;
+      color: var(--teal-200);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    /* Login Modal */
+    .qa-login-box {
+      background: linear-gradient(145deg, rgba(13,60,60,0.85) 0%, rgba(10,22,40,0.9) 100%);
+      border: 1px solid rgba(201,168,76,0.25);
+      border-radius: var(--radius-xl);
+      padding: 40px;
+      width: 100%;
+      max-width: 420px;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 30px 80px rgba(0,0,0,0.6);
+    }
+
+    .qa-login-logo { text-align: center; margin-bottom: 28px; }
+    .qa-login-logo .arabic { font-family: var(--font-arabic); font-size: 1.8rem; color: var(--gold-400); }
+    .qa-login-logo .name { font-family: var(--font-display); font-size: 1rem; color: var(--cream); letter-spacing: 0.08em; margin-top: 2px; }
+
+    .qa-role-tabs { display: flex; background: rgba(10,22,40,0.6); border-radius: var(--radius-md); padding: 4px; margin-bottom: 22px; gap: 2px; }
+    .qa-role-tab { flex: 1; padding: 9px 6px; border: none; background: none; border-radius: 6px; font-family: var(--font-ui); font-size: 0.78rem; font-weight: 500; color: var(--teal-200); cursor: pointer; transition: all var(--transition); text-align: center; }
+    .qa-role-tab.active { background: var(--teal-600); color: var(--gold-300); }
+
+    .qa-forgot { font-size: 0.75rem; color: var(--teal-200); text-align: right; display: block; margin-top: -12px; margin-bottom: 20px; }
+
+    .qa-register-link { text-align: center; margin-top: 20px; font-size: 0.82rem; color: var(--teal-200); font-family: var(--font-ui); }
+    .qa-register-link a { color: var(--gold-400); font-weight: 600; }
+
+    /* Right side = login on landing */
+    .qa-hero.has-login .qa-hero__right {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px;
+    }
+
+    @media (max-width: 900px) {
+      .qa-hero { grid-template-columns: 1fr; }
+      .qa-hero__right { min-height: 400px; }
+      .qa-hero__left { padding: 60px 28px 40px; }
+      .qa-hero__title { font-size: 2rem; }
+      .qa-hero__arabic { font-size: 2.2rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="qa-bg-pattern"></div>
+
+  <section class="qa-hero has-login">
+    <!-- Left: Hero content -->
+    <div class="qa-hero__left">
+      <div class="qa-hero__badge">
+        <span>🌙</span> Online Islamic Education Platform
+      </div>
+      <div class="qa-hero__arabic">أكاديمية القرآن الكريم</div>
+      <h1 class="qa-hero__title">Learn the Holy <span>Quran</span> with Expert Teachers</h1>
+      <p class="qa-hero__desc">
+        Join our online Quran academy for live, interactive classes in Qaida, Nazra, Hifz, and Tajweed. 
+        Learn at your own pace with certified teachers from anywhere in the world.
+      </p>
+      <div class="qa-hero__actions">
+        <a href="register.html" class="qa-btn qa-btn--primary qa-btn--lg">Enroll Now — Free</a>
+        <a href="#learn-more" class="qa-btn qa-btn--outline qa-btn--lg">Learn More</a>
+      </div>
+      <div class="qa-hero__features">
+        <div class="qa-feature-item"><span>🎙️</span> Live Audio & Video</div>
+        <div class="qa-feature-item"><span>📅</span> Flexible Schedule</div>
+        <div class="qa-feature-item"><span>📊</span> Progress Tracking</div>
+        <div class="qa-feature-item"><span>🌍</span> Global Students</div>
+      </div>
+    </div>
+
+    <!-- Right: Login form -->
+    <div class="qa-hero__right">
+      <div class="qa-login-box">
+        <div class="qa-login-logo">
+          <div class="arabic">﷽</div>
+          <div class="name">Quran Academy</div>
+        </div>
+
+        <!-- Role selector -->
+        <div class="qa-role-tabs">
+          <button class="qa-role-tab active" data-role="student">🎓 Student</button>
+          <button class="qa-role-tab" data-role="teacher">📖 Teacher</button>
+          <button class="qa-role-tab" data-role="admin">⚙️ Admin</button>
+        </div>
+
+        <!-- Login form -->
+        <div id="loginError" class="qa-error-msg mb-16" style="display:none;"></div>
+
+        <div class="qa-form-group">
+          <label class="qa-label">Email Address<span class="required">*</span></label>
+          <input type="email" id="loginEmail" class="qa-input" placeholder="your@email.com" autocomplete="email" />
+        </div>
+
+        <div class="qa-form-group">
+          <label class="qa-label">Password<span class="required">*</span></label>
+          <input type="password" id="loginPassword" class="qa-input" placeholder="••••••••" autocomplete="current-password" />
+        </div>
+
+        <a href="#" class="qa-forgot">Forgot password?</a>
+
+        <button id="loginBtn" class="qa-btn qa-btn--primary qa-btn--block qa-btn--lg">
+          Sign In
+        </button>
+
+        <div class="qa-register-link">
+          New student? <a href="register.html">Register for free →</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <script src="js/api.js"></script>
+  <script>
+    // Redirect if already logged in
+    if (Auth.isLoggedIn()) {
+      const role = Auth.getRole();
+      const map = { admin: 'admin/dashboard.html', teacher: 'teacher/dashboard.html', student: 'student/dashboard.html' };
+      window.location.href = map[role] || 'index.html';
+    }
+
+    // Check API configuration
+    if (!API.isConfigured()) {
+      const warning = document.createElement('div');
+      warning.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#7a5200;color:#fff;text-align:center;padding:10px;font-family:sans-serif;font-size:13px;z-index:9999;';
+      warning.textContent = '⚠️ Setup required: Update APPS_SCRIPT_URL in js/api.js with your Google Apps Script deployment URL.';
+      document.body.prepend(warning);
+    }
+
+    // Role tabs
+    let selectedRole = 'student';
+    document.querySelectorAll('.qa-role-tab').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.qa-role-tab').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        selectedRole = btn.dataset.role;
+      });
+    });
+
+    // Login
+    document.getElementById('loginBtn').addEventListener('click', handleLogin);
+    document.getElementById('loginPassword').addEventListener('keydown', e => {
+      if (e.key === 'Enter') handleLogin();
+    });
+
+    async function handleLogin() {
+      const email    = document.getElementById('loginEmail').value.trim();
+      const password = document.getElementById('loginPassword').value;
+      const errorEl  = document.getElementById('loginError');
+      const btn      = document.getElementById('loginBtn');
+
+      errorEl.style.display = 'none';
+
+      if (!email || !password) {
+        errorEl.textContent = 'Please enter email and password.';
+        errorEl.style.display = 'block';
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = 'Signing in...';
+
+      try {
+        const res = await Auth.login(email, password, selectedRole);
+        Utils.toast('Ahlan wa sahlan, ' + (res.user.FullName || ''), 'success');
+
+        const map = {
+          admin:     'admin/dashboard.html',
+          superadmin:'admin/dashboard.html',
+          teacher:   'teacher/dashboard.html',
+          student:   'student/dashboard.html'
+        };
+        setTimeout(() => {
+          window.location.href = map[res.role] || 'student/dashboard.html';
+        }, 600);
+      } catch (err) {
+        errorEl.textContent = err.message;
+        errorEl.style.display = 'block';
+        btn.disabled = false;
+        btn.textContent = 'Sign In';
+      }
+    }
+  </script>
+</body>
+</html>
